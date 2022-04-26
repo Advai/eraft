@@ -42,10 +42,13 @@
 #include <eraftio/eraftpb.pb.h>
 #include <raftcore/log.h>
 #include <stdint.h>
-
+#include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
+#define UUID_SYSTEM_GENERATOR
+#include "uuid.h"
 
 namespace eraft {
 
@@ -181,11 +184,13 @@ class RaftContext : StateMachine {
   // sendAppend sends an append RPC with new entries (if any) and the
   // current commit index to the given peer. Returns true if a message was sent.
   bool SendAppend(uint64_t to);
+  bool SendAppend_b(uint64_t to);
 
   // tick advances the internal logical clock by a single tick.
   void Tick();
 
   std::map<uint64_t, std::shared_ptr<Progress> > prs_;
+  std::map<uint64_t, std::shared_ptr<Progress> > prs_b;
 
   uint64_t id_;
 
@@ -220,6 +225,7 @@ class RaftContext : StateMachine {
 
   void SendHeartbeatResponse(uint64_t to, bool reject);
 
+  
   void SendRequestVote(uint64_t to, uint64_t index, uint64_t term);
 
   void SendRequestVoteResponse(uint64_t to, bool reject);
@@ -275,7 +281,10 @@ class RaftContext : StateMachine {
   // removeNode remove a node from raft group
   void RemoveNode(uint64_t id);
 
+  size_t hash_combine(size_t lhs, size_t rhs);
+
   std::vector<eraftpb::Message> msgs_;
+  std::vector<eraftpb::BlockMessage> msgs_b;
 
   uint64_t heartbeatTimeout_;
 
@@ -295,6 +304,21 @@ class RaftContext : StateMachine {
   uint64_t leadTransferee_;
 
   uint64_t pendingConfIndex_;
+
+  bool HandleRequestVote_b(eraftpb::Message m);
+
+  bool HandleRequestVoteResponse_b(eraftpb::Message m);
+  bool DoElection_b();
+  void BcastAppend_b();
+  bool HandleRequestVote_b(eraftpb::BlockMessage m);
+  bool HandleRequestVoteResponse_b(eraftpb::BlockMessage m);
+  bool HandleAppendEntries_b(eraftpb::BlockMessage m);
+  bool HandleAppendEntriesResponse_b(eraftpb::BlockMessage m);
+  void AppendEntries_b(std::vector<std::shared_ptr<eraftpb::Block>> blocks);
+  void SendAppendResponse_b(uint64_t to, bool reject);
+  void SendRequestVote_b(uint64_t to, uint64_t term);
+  void LeaderCommit_b();
+  void BecomeLeader_b();
 };
 
 }  // namespace eraft

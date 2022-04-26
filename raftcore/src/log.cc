@@ -56,11 +56,26 @@ RaftLog::RaftLog(std::shared_ptr<StorageInterface> st) {
   uint64_t lo = st->FirstIndex();
   uint64_t hi = st->LastIndex();
   std::vector<eraftpb::Entry> entries = st->Entries(lo, hi + 1);
+  // std::list<eraftpb::Entry> chain;
+  // std::copy( (entries.begin(), entries.end()), std::back_inserter(chain));
   this->storage_ = st;
   this->entries_ = entries;
   this->applied_ = lo - 1;
   this->stabled_ = hi;
   this->firstIndex_ = lo;
+  eraftpb::Block genesis;
+  genesis.set_data(NULL);
+  genesis.set_entry_type(eraftpb::EntryNormal);
+  genesis.set_uid(0);
+  // blk.set_uid(uuids::to_string(uuids::uuid_system_gnerator{}()));
+  // init list node and pushback to vec
+  std::vector<ListNode*> vec;
+  eraft::ListNode* newNode;
+  newNode->block = genesis;
+  newNode->next = nullptr;
+  vec.push_back(newNode);
+  this->cHeads_ = vec;
+
   SPDLOG_INFO("init raft log with firstIndex " +
               std::to_string(this->firstIndex_) + " applied " +
               std::to_string(this->applied_) + " stabled " +
@@ -147,4 +162,20 @@ std::pair<uint64_t, bool> RaftLog::Term(uint64_t i) {
   return std::make_pair<uint64_t, bool>(static_cast<uint64_t>(term_), true);
 }
 
+ListNode* RaftLog::FindBlock(eraftpb::Block block) {
+  for (int i = 0; i < this->cHeads_.size(); i++) {
+    auto it = this->cHeads_[i];
+    // while (!google::protobuf::MessageDifferencer::Equals(it->block, commitMarker->block) || it != NULL) {
+      while (it != NULL) {
+      if (true) {
+        return it;
+      }
+      it = it->next;
+    }
+  }
+  return NULL;
+}
+void RaftLog::RemoveSideChains() {
+  auto block = this->commitMarker->next->block;
+}
 }  // namespace eraft

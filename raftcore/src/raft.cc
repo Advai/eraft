@@ -44,6 +44,7 @@
 #include <algorithm>
 
 namespace eraft {
+
 bool Config::Validate() {
   if (this->id == 0) {
     SPDLOG_ERROR("can't use none as id!");
@@ -64,11 +65,17 @@ bool Config::Validate() {
   return true;
 }
 
+size_t RaftContext::hash_combine(size_t lhs, size_t rhs) {
+  lhs ^= rhs + 0x9e3779b9 + (lhs << 6) + (lhs >> 2);
+  return lhs;
+}
 RaftContext::RaftContext(Config& c)
     : electionElapsed_(0), heartbeatElapsed_(0) {
   assert(c.Validate());
   this->id_ = c.id;
   this->prs_ = std::map<uint64_t, std::shared_ptr<Progress> >{};
+  this->prs_b = std::map<uint64_t, std::shared_ptr<Progress> >{};
+
   this->votes_ = std::map<uint64_t, bool>{};
   this->heartbeatTimeout_ = c.heartbeatTick;
   this->electionTimeout_ = c.electionTick;
@@ -88,10 +95,13 @@ RaftContext::RaftContext(Config& c)
   for (auto iter : c.peers) {
     if (iter == this->id_) {
       this->prs_[iter] = std::make_shared<Progress>(lastIndex + 1, lastIndex);
+      this->prs_b[iter] = std::make_shared<Progress>(0, 0);
     } else {
       this->prs_[iter] = std::make_shared<Progress>(lastIndex + 1);
+      this->prs_b[iter] = std::make_shared<Progress>(0);
     }
   }
+
   this->BecomeFollower(0, NONE);
   this->randomElectionTimeout_ =
       this->electionTimeout_ + RandIntn(this->electionTimeout_);
@@ -123,9 +133,41 @@ void RaftContext::SendSnapshot(uint64_t to) {
   this->msgs_.push_back(msg);
 }
 
+bool RaftContext::SendAppend_b(uint64_t to) {
+  eraft::ListNode* curr = this->raftLog_->lHead;
+  std::vector<eraftpb::Block> blockList;
+  for (int i = 0; i < this->prs_b[to]->next; i++) {
+    blockList.push_back(curr->block); //list of length prs_b[to]->next size.. (offset to send node i)
+    curr = curr->next;
+  }
+  //Block currBlock = curr->block;
+  eraftpb::Block prevBlock = (curr->next)->block;
+
+  if (blockList.size() > 0) {
+    eraftpb::BlockMessage msg;
+    msg.set_msg_type(eraftpb::MsgAppend);
+    msg.set_from(this->id_);
+    msg.set_to(to);
+    msg.set_term(this->term_);
+    msg.set_last_term(this->raftLog_->lastAppendedTerm);
+    msg.set_allocated_commit(&this->raftLog_->commitMarker->block);
+    msg.set_allocated_prev_block(&prevBlock);
+    for (auto it : blockList) {
+      eraftpb::Block* e = msg.add_blocks();
+      e->set_entry_type(it.entry_type());
+      e->set_uid(it.uid());
+      e->set_data(it.data());
+      SPDLOG_INFO("SET BLOCK DATA =============================" +
+                  it.data());
+    }  
+    this->msgs_b.push_back(msg);
+  }
+  return true;
+}
+
+
 bool RaftContext::SendAppend(uint64_t to) {
   uint64_t prevIndex = this->prs_[to]->next - 1;
-
   auto resPair = this->raftLog_->Term(prevIndex);
   uint64_t prevLogTerm = resPair.first;
   if (!resPair.second) {
@@ -142,7 +184,14 @@ bool RaftContext::SendAppend(uint64_t to) {
       msg.set_to(to);
       msg.set_term(this->term_);
       msg.set_commit(this->raftLog_->commited_);
+      // msg.set_prev_block(this->raftLog_->chain_.front());
       msg.set_log_term(prevLogTerm);
+      // std::vector<uint64> v {
+      //    this->id_, to, this->term_, this->raftLog_->commited_, prevIndex
+      // };
+      // const char* data = reinterpret_cast<const char*>(v.data());
+      // std::size_t size = v.size() * sizeof(v[0]);
+      // std::hash<std::string_view> hash;
       msg.set_index(prevIndex);
       for (auto ent : entries) {
         eraftpb::Entry* e = msg.add_entries();
@@ -182,6 +231,24 @@ bool RaftContext::SendAppend(uint64_t to) {
   return true;
 }
 
+//Only need to send who and if the response was rejected..
+//Leader will take care of the rest in their response..
+void RaftContext::SendAppendResponse_b(uint64_t to, bool reject) {
+  eraftpb::BlockMessage msg;
+  msg.set_msg_type(eraftpb::MsgAppendResponse);
+  msg.set_from(this->id_);
+  msg.set_to(to);
+  msg.set_term(this->term_);
+  msg.set_reject(reject);
+
+  // SPDLOG_INFO("send append response to -> " + std::to_string(to) +
+              // " reject -> " + BoolToString(reject) + " term -> " +
+              // std::to_string(this->term_);
+
+  this->msgs_b.push_back(msg);
+
+}
+
 void RaftContext::SendAppendResponse(uint64_t to, bool reject, uint64_t term,
                                      uint64_t index) {
   eraftpb::Message msg;
@@ -192,6 +259,7 @@ void RaftContext::SendAppendResponse(uint64_t to, bool reject, uint64_t term,
   msg.set_reject(reject);
   msg.set_log_term(term);
   msg.set_index(index);
+
   SPDLOG_INFO("send append response to -> " + std::to_string(to) +
               " reject -> " + BoolToString(reject) + " term -> " +
               std::to_string(term) + " index -> " + std::to_string(index));
@@ -220,6 +288,20 @@ void RaftContext::SendHeartbeatResponse(uint64_t to, bool reject) {
   msg.set_term(this->term_);
   msg.set_reject(reject);
   this->msgs_.push_back(msg);
+}
+
+void RaftContext::SendRequestVote_b(uint64_t to, uint64_t term) {
+  SPDLOG_INFO("send request vote to -> " + std::to_string(to) + " index -> "
+      + " term -> " + std::to_string(term));
+
+  eraftpb::BlockMessage msg;
+  msg.set_msg_type(eraftpb::MsgRequestVote);
+  msg.set_from(this->id_);
+  msg.set_to(to);
+  msg.set_term(this->term_);
+  msg.set_last_term(term);
+  msg.set_allocated_prev_block(&this->raftLog_->lHead->block);
+  this->msgs_b.push_back(msg);
 }
 
 void RaftContext::SendRequestVote(uint64_t to, uint64_t index, uint64_t term) {
@@ -327,6 +409,40 @@ void RaftContext::BecomeCandidate() {
   this->votes_ = std::map<uint64_t, bool>{};
   this->votes_[this->id_] = true;  // vote for self
   SPDLOG_INFO("node become candidate at term " + std::to_string(this->term_));
+}
+
+void RaftContext::BecomeLeader_b() {
+  this->state_ = NodeState::StateLeader;
+  this->lead_ = this->id_;
+  //uint64_t lastIndex = this->raftLog_->LastIndex();
+  this->heartbeatElapsed_ = 0;
+  for (auto peer : this->prs_b) {
+    if (peer.first == this->id_) {
+      //Todo: make nextB, matchB for block only operations
+      this->prs_b[peer.first]->next = 0;
+      this->prs_b[peer.first]->match = 0;
+    } else {
+      this->prs_b[peer.first]->next = 0;
+    }
+  }
+
+  eraftpb::Block blk;
+  blk.set_entry_type(eraftpb::EntryNormal);
+  blk.set_uid(0);
+  blk.set_data("");
+  //TODO: Just add ListNode constructor..
+  //ListNode* newNode(blk, this->raftLog_->lHead);
+  eraft::ListNode* newNode;
+  newNode->block = blk;
+  newNode->next = this->raftLog_->lHead;
+  this->raftLog_->lHead = newNode;
+  this->BcastAppend_b();
+
+  if (this->prs_b.size() == 1) {
+    //Todo.. if we are the only peer.. can just make commitMarker our head (n/2 exactly has persisited the data.. (??)
+    this->raftLog_->commitMarker = newNode;
+  } 
+  SPDLOG_INFO("node become leader (block) at term " + std::to_string(this->term_));
 }
 
 void RaftContext::BecomeLeader() {
@@ -543,6 +659,27 @@ void RaftContext::StepLeader(eraftpb::Message m) {
   }
 }
 
+bool RaftContext::DoElection_b() {
+  SPDLOG_INFO("node start do election (block)");
+  this->BecomeCandidate();
+  this->heartbeatElapsed_ = 0;
+  this->randomElectionTimeout_ =
+      this->electionTimeout_ + RandIntn(this->electionTimeout_);
+  if (this->prs_b.size() == 1) {
+    this->BecomeLeader();
+    return true;
+  }
+
+  //Send each peer last log term and head block..
+  uint64_t lastLogTerm = this->raftLog_->lastAppendedTerm;
+  for (auto peer : this->prs_) {
+    if (peer.first == this->id_) {
+      continue;
+    }
+    this->SendRequestVote_b(peer.first, lastLogTerm);
+  }
+}
+
 bool RaftContext::DoElection() {
   SPDLOG_INFO("node start do election");
 
@@ -577,6 +714,15 @@ void RaftContext::BcastHeartbeat() {
   }
 }
 
+void RaftContext::BcastAppend_b() {
+  for (auto peer : this->prs_) {
+    if (peer.first == this->id_) {
+      continue;
+    }
+    this->SendAppend_b(peer.first);
+  }
+}
+
 void RaftContext::BcastAppend() {
   for (auto peer : this->prs_) {
     if (peer.first == this->id_) {
@@ -584,6 +730,37 @@ void RaftContext::BcastAppend() {
     }
     this->SendAppend(peer.first);
   }
+}
+
+bool RaftContext::HandleRequestVote_b(eraftpb::BlockMessage m) {
+  SPDLOG_INFO("handle request vote (block) from " + std::to_string(m.from()));
+  if (m.term() != NONE && m.term() < this->term_) {
+    this->SendRequestVoteResponse(m.from(), true);
+    return true;
+  }
+  // if voted already , reject 
+  if (this->vote_ != NONE && this->vote_ != m.from()) {
+    this->SendRequestVoteResponse(m.from(), true);
+    return true;
+  }
+  // m.index() = last appended term of candidate here
+  // if follower has greater last appended term, reject
+  if (m.last_term() <= this->raftLog_->lastAppendedTerm) {
+    bool uptoDate = false;
+    if (m.last_term() == this->raftLog_->lastAppendedTerm) {
+      // check if heads are same or if candidate head extends follower's head
+      uptoDate = true;
+    }
+    if (!uptoDate) {
+      this->SendRequestVoteResponse(m.from(), true);
+      return true;
+    }
+  }
+  this->vote_ = m.from();
+  this->electionElapsed_ = 0;
+  this->randomElectionTimeout_ =
+      this->electionTimeout_ + RandIntn(this->electionTimeout_);
+  this->SendRequestVoteResponse(m.from(), false);  
 }
 
 bool RaftContext::HandleRequestVote(eraftpb::Message m) {
@@ -614,6 +791,30 @@ bool RaftContext::HandleRequestVote(eraftpb::Message m) {
   this->SendRequestVoteResponse(m.from(), false);
 }
 
+bool RaftContext::HandleRequestVoteResponse_b(eraftpb::BlockMessage m) {
+  SPDLOG_INFO("handle request vote response from peer " +
+              std::to_string(m.from()));
+  if (m.term() != NONE && m.term() < this->term_) {
+    this->SendRequestVoteResponse(m.from(), true);
+    return false;
+  }
+
+  this->votes_[m.from()] = !m.reject();
+  uint8_t grant = 0;
+  uint8_t votes = this->votes_.size();
+  uint8_t threshold = this->prs_.size() / 2;
+  for (auto vote : this->votes_) {
+    if (vote.second) {
+      grant++;
+    }
+  }
+  if (grant > threshold) {
+    this->BecomeLeader();
+  } else if (votes - grant > threshold) {
+    this->BecomeFollower(this->term_, NONE);
+  }
+}
+
 bool RaftContext::HandleRequestVoteResponse(eraftpb::Message m) {
   SPDLOG_INFO("handle request vote response from peer " +
               std::to_string(m.from()));
@@ -636,22 +837,66 @@ bool RaftContext::HandleRequestVoteResponse(eraftpb::Message m) {
   }
 }
 
+bool RaftContext::HandleAppendEntries_b(eraftpb::BlockMessage m) {
+
+  // SPDLOG_INFO("handle append entries (block) " + MessageToString(m));
+
+  if (m.term() != NONE && m.term() < this->term_) {
+    this->SendAppendResponse_b(m.from(), true);
+    return false;
+  }
+  
+  this->electionElapsed_ = 0;
+  this->randomElectionTimeout_ = this->electionTimeout_ + RandIntn(this->electionTimeout_);
+  this->lead_ = m.from();
+
+  ListNode* prev = this->raftLog_->FindBlock(m.prev_block());
+  // 
+  if (!prev) {
+    this->SendAppendResponse_b(m.from(), true);
+    return false;
+  }
+
+  //Update chain/head
+  for (auto block : m.blocks()) {
+    ListNode* newnode;
+    newnode->next = prev;
+    newnode->block = block;
+    this->raftLog_->lHead = newnode;
+    prev = newnode;
+  }
+  this->raftLog_->lastAppendedTerm = this->term_;
+  //Send response rpc
+  this->SendAppendResponse_b(m.from(), false);
+  return true;
+  }
+
 bool RaftContext::HandleAppendEntries(eraftpb::Message m) {
   SPDLOG_INFO("handle append entries " + MessageToString(m));
 
+  // return false if term of msg < current term
   if (m.term() != NONE && m.term() < this->term_) {
     this->SendAppendResponse(m.from(), true, NONE, NONE);
     return false;
   }
+  
   this->electionElapsed_ = 0;
   this->randomElectionTimeout_ =
       this->electionTimeout_ + RandIntn(this->electionTimeout_);
   this->lead_ = m.from();
+  // this->raftLog_->commitMarker = m.commit();
   uint64_t lastIndex = this->raftLog_->LastIndex();
+
+  // if (this->raftLog_->entries_[lastIndex] != m.prev_block()) {
+  //   this->SendAppendReponse(m.from(), true, NONE, lastIndex + 1);
+  // }
+  
+  // if msg index > last index, reject to get 
   if (m.index() > lastIndex) {
     this->SendAppendResponse(m.from(), true, NONE, lastIndex + 1);
     return false;
   }
+  // if log doesn't contain entry at prevLogIndex whose term matches prevLogTerm
   if (m.index() >= this->raftLog_->firstIndex_) {
     auto resPair = this->raftLog_->Term(m.index());
     uint64_t logTerm = resPair.first;
@@ -698,6 +943,30 @@ bool RaftContext::HandleAppendEntries(eraftpb::Message m) {
         std::min(m.commit(), m.index() + m.entries().size());
   }
   this->SendAppendResponse(m.from(), false, NONE, this->raftLog_->LastIndex());
+}
+
+bool RaftContext::HandleAppendEntriesResponse_b(eraftpb::BlockMessage m) {
+  SPDLOG_INFO("handle append entries (block) response from" + std::to_string(m.from()));
+  if (m.term() != NONE && m.term() < this->term_) {
+    return false;
+  }
+  
+  if (m.reject()) {
+    //Message was rejected.. 
+    this->prs_[m.from()]->next++; //increment next to send the next block..
+    this->SendAppend(m.from());  
+    return false;
+  }
+  //message was accepted..
+  this->prs_[m.from()]->next = 0; //update nextoffset to 0
+  this->prs_[m.from()]->match = 0; //Matches up to our head..
+  this->LeaderCommit_b(); //TODO: update LeaderCommit to use blocks..
+  this->SendTimeoutNow(m.from()); //Just reset timeout..
+  return true;
+}
+
+void RaftContext::LeaderCommit_b() {
+  return;
 }
 
 bool RaftContext::HandleAppendEntriesResponse(eraftpb::Message m) {
@@ -773,6 +1042,16 @@ bool RaftContext::HandleHeartbeat(eraftpb::Message m) {
   this->randomElectionTimeout_ =
       this->electionTimeout_ + RandIntn(this->electionTimeout_);
   this->SendHeartbeatResponse(m.from(), false);
+}
+
+void RaftContext::AppendEntries_b(std::vector<std::shared_ptr<eraftpb::Block>> blocks) {
+  SPDLOG_INFO("append blocks size " + std::to_string(blocks.size()));
+  // for (auto block: blocks) {
+  //   block->set_term(this->term_);
+  //   if (entry->entry_type() == eraftpb::EntryConfChange) {
+      
+  //   }
+  // }
 }
 
 void RaftContext::AppendEntries(

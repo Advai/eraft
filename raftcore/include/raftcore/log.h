@@ -40,6 +40,12 @@
 
 #include <raftcore/memory_storage.h>
 #include <stdint.h>
+#include <list>
+#include <functional>
+#define UUID_SYSTEM_GENERATOR
+#include "uuid.h"
+
+#include <google/protobuf/util/message_differencer.h>
 
 // RaftLog manage the log entries, its struct look like:
 //
@@ -56,6 +62,11 @@ enum class NodeState {
   StateFollower,
   StateCandidate,
   StateLeader,
+};
+
+struct ListNode {
+  eraftpb::Block block;
+  ListNode* next;
 };
 
 class RaftLog {
@@ -105,9 +116,22 @@ class RaftLog {
   uint64_t stabled_;
 
   uint64_t firstIndex_;
+  
 
   // all entries that have not yet compact.
   std::vector<eraftpb::Entry> entries_;
+
+  // std::vector<std::list<eraftpb::Block>> chain_;
+  std::vector<ListNode*> cHeads_;
+
+  // std::list<eraftpb::Block> chain_; // 
+  //APIs
+  ListNode* FindBlock(eraftpb::Block block);
+  void RemoveSideChains();
+
+  ListNode* lHead;
+  uint64_t lastAppendedTerm;
+  ListNode* commitMarker;
 
  private:
   // storage contains all stable entries since the last snapshot.

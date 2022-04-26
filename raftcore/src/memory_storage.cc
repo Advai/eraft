@@ -60,6 +60,7 @@ void MemoryStorage::SetHardState(eraftpb::HardState& st) {
   std::lock_guard<std::mutex> lck(mutex_);
   this->hardState_ = st;
 }
+//std::vector<eraftpb::Block> MemoryStorage::bEntries(eraft::ListNode* head, uint64_t offset);
 
 std::vector<eraftpb::Entry> MemoryStorage::Entries(uint64_t lo, uint64_t hi) {
   std::vector<eraftpb::Entry> ents;

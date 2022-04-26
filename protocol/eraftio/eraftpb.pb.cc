@@ -24,12 +24,18 @@ namespace {
 const ::google::protobuf::Descriptor* Entry_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Entry_reflection_ = NULL;
+const ::google::protobuf::Descriptor* Block_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  Block_reflection_ = NULL;
 const ::google::protobuf::Descriptor* SnapshotMetadata_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   SnapshotMetadata_reflection_ = NULL;
 const ::google::protobuf::Descriptor* Snapshot_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Snapshot_reflection_ = NULL;
+const ::google::protobuf::Descriptor* BlockMessage_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  BlockMessage_reflection_ = NULL;
 const ::google::protobuf::Descriptor* Message_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Message_reflection_ = NULL;
@@ -74,7 +80,24 @@ void protobuf_AssignDesc_eraftpb_2eproto() {
       sizeof(Entry),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Entry, _internal_metadata_),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Entry, _is_default_instance_));
-  SnapshotMetadata_descriptor_ = file->message_type(1);
+  Block_descriptor_ = file->message_type(1);
+  static const int Block_offsets_[3] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Block, entry_type_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Block, uid_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Block, data_),
+  };
+  Block_reflection_ =
+    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+      Block_descriptor_,
+      Block::default_instance_,
+      Block_offsets_,
+      -1,
+      -1,
+      -1,
+      sizeof(Block),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Block, _internal_metadata_),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Block, _is_default_instance_));
+  SnapshotMetadata_descriptor_ = file->message_type(2);
   static const int SnapshotMetadata_offsets_[3] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SnapshotMetadata, conf_state_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SnapshotMetadata, index_),
@@ -91,7 +114,7 @@ void protobuf_AssignDesc_eraftpb_2eproto() {
       sizeof(SnapshotMetadata),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SnapshotMetadata, _internal_metadata_),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SnapshotMetadata, _is_default_instance_));
-  Snapshot_descriptor_ = file->message_type(2);
+  Snapshot_descriptor_ = file->message_type(3);
   static const int Snapshot_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Snapshot, data_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Snapshot, metadata_),
@@ -107,7 +130,31 @@ void protobuf_AssignDesc_eraftpb_2eproto() {
       sizeof(Snapshot),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Snapshot, _internal_metadata_),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Snapshot, _is_default_instance_));
-  Message_descriptor_ = file->message_type(3);
+  BlockMessage_descriptor_ = file->message_type(4);
+  static const int BlockMessage_offsets_[10] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BlockMessage, msg_type_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BlockMessage, to_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BlockMessage, from_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BlockMessage, term_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BlockMessage, prev_block_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BlockMessage, last_term_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BlockMessage, blocks_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BlockMessage, commit_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BlockMessage, snapshot_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BlockMessage, reject_),
+  };
+  BlockMessage_reflection_ =
+    ::google::protobuf::internal::GeneratedMessageReflection::NewGeneratedMessageReflection(
+      BlockMessage_descriptor_,
+      BlockMessage::default_instance_,
+      BlockMessage_offsets_,
+      -1,
+      -1,
+      -1,
+      sizeof(BlockMessage),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BlockMessage, _internal_metadata_),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BlockMessage, _is_default_instance_));
+  Message_descriptor_ = file->message_type(5);
   static const int Message_offsets_[10] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, msg_type_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, to_),
@@ -131,7 +178,7 @@ void protobuf_AssignDesc_eraftpb_2eproto() {
       sizeof(Message),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, _internal_metadata_),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Message, _is_default_instance_));
-  HardState_descriptor_ = file->message_type(4);
+  HardState_descriptor_ = file->message_type(6);
   static const int HardState_offsets_[3] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HardState, term_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HardState, vote_),
@@ -148,7 +195,7 @@ void protobuf_AssignDesc_eraftpb_2eproto() {
       sizeof(HardState),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HardState, _internal_metadata_),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HardState, _is_default_instance_));
-  ConfState_descriptor_ = file->message_type(5);
+  ConfState_descriptor_ = file->message_type(7);
   static const int ConfState_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConfState, nodes_),
   };
@@ -163,7 +210,7 @@ void protobuf_AssignDesc_eraftpb_2eproto() {
       sizeof(ConfState),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConfState, _internal_metadata_),
       GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConfState, _is_default_instance_));
-  ConfChange_descriptor_ = file->message_type(6);
+  ConfChange_descriptor_ = file->message_type(8);
   static const int ConfChange_offsets_[3] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConfChange, change_type_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(ConfChange, node_id_),
@@ -199,9 +246,13 @@ void protobuf_RegisterTypes(const ::std::string&) {
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       Entry_descriptor_, &Entry::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+      Block_descriptor_, &Block::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       SnapshotMetadata_descriptor_, &SnapshotMetadata::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       Snapshot_descriptor_, &Snapshot::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+      BlockMessage_descriptor_, &BlockMessage::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
       Message_descriptor_, &Message::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
@@ -217,10 +268,14 @@ void protobuf_RegisterTypes(const ::std::string&) {
 void protobuf_ShutdownFile_eraftpb_2eproto() {
   delete Entry::default_instance_;
   delete Entry_reflection_;
+  delete Block::default_instance_;
+  delete Block_reflection_;
   delete SnapshotMetadata::default_instance_;
   delete SnapshotMetadata_reflection_;
   delete Snapshot::default_instance_;
   delete Snapshot_reflection_;
+  delete BlockMessage::default_instance_;
+  delete BlockMessage_reflection_;
   delete Message::default_instance_;
   delete Message_reflection_;
   delete HardState::default_instance_;
@@ -241,43 +296,56 @@ void protobuf_AddDesc_eraftpb_2eproto() {
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n\reraftpb.proto\022\007eraftpb\"Z\n\005Entry\022&\n\nent"
     "ry_type\030\001 \001(\0162\022.eraftpb.EntryType\022\014\n\004ter"
-    "m\030\002 \001(\004\022\r\n\005index\030\003 \001(\004\022\014\n\004data\030\004 \001(\014\"W\n\020"
-    "SnapshotMetadata\022&\n\nconf_state\030\001 \001(\0132\022.e"
-    "raftpb.ConfState\022\r\n\005index\030\002 \001(\004\022\014\n\004term\030"
-    "\003 \001(\004\"E\n\010Snapshot\022\014\n\004data\030\001 \001(\014\022+\n\010metad"
-    "ata\030\002 \001(\0132\031.eraftpb.SnapshotMetadata\"\340\001\n"
-    "\007Message\022&\n\010msg_type\030\001 \001(\0162\024.eraftpb.Mes"
-    "sageType\022\n\n\002to\030\002 \001(\004\022\014\n\004from\030\003 \001(\004\022\014\n\004te"
-    "rm\030\004 \001(\004\022\020\n\010log_term\030\005 \001(\004\022\r\n\005index\030\006 \001("
-    "\004\022\037\n\007entries\030\007 \003(\0132\016.eraftpb.Entry\022\016\n\006co"
-    "mmit\030\010 \001(\004\022#\n\010snapshot\030\t \001(\0132\021.eraftpb.S"
-    "napshot\022\016\n\006reject\030\n \001(\010\"7\n\tHardState\022\014\n\004"
-    "term\030\001 \001(\004\022\014\n\004vote\030\002 \001(\004\022\016\n\006commit\030\003 \001(\004"
-    "\"\032\n\tConfState\022\r\n\005nodes\030\001 \003(\004\"\\\n\nConfChan"
-    "ge\022,\n\013change_type\030\001 \001(\0162\027.eraftpb.ConfCh"
-    "angeType\022\017\n\007node_id\030\002 \001(\004\022\017\n\007context\030\003 \001"
-    "(\014*G\n\tEntryType\022\017\n\013EntryNormal\020\000\022\023\n\017Entr"
-    "yConfChange\020\001\022\024\n\020EntrySplitRegion\020\002*\213\002\n\013"
-    "MessageType\022\n\n\006MsgHup\020\000\022\013\n\007MsgBeat\020\001\022\016\n\n"
-    "MsgPropose\020\002\022\r\n\tMsgAppend\020\003\022\025\n\021MsgAppend"
-    "Response\020\004\022\022\n\016MsgRequestVote\020\005\022\032\n\026MsgReq"
-    "uestVoteResponse\020\006\022\017\n\013MsgSnapshot\020\007\022\020\n\014M"
-    "sgHeartbeat\020\010\022\030\n\024MsgHeartbeatResponse\020\t\022"
-    "\025\n\021MsgTransferLeader\020\013\022\021\n\rMsgTimeoutNow\020"
-    "\014\022\026\n\022MsgEntryConfChange\020\r*-\n\016ConfChangeT"
-    "ype\022\013\n\007AddNode\020\000\022\016\n\nRemoveNode\020\001b\006proto3", 1080);
+    "m\030\002 \001(\004\022\r\n\005index\030\003 \001(\004\022\014\n\004data\030\004 \001(\014\"J\n\005"
+    "Block\022&\n\nentry_type\030\001 \001(\0162\022.eraftpb.Entr"
+    "yType\022\013\n\003uid\030\002 \001(\004\022\014\n\004data\030\003 \001(\014\"W\n\020Snap"
+    "shotMetadata\022&\n\nconf_state\030\001 \001(\0132\022.eraft"
+    "pb.ConfState\022\r\n\005index\030\002 \001(\004\022\014\n\004term\030\003 \001("
+    "\004\"E\n\010Snapshot\022\014\n\004data\030\001 \001(\014\022+\n\010metadata\030"
+    "\002 \001(\0132\031.eraftpb.SnapshotMetadata\"\212\002\n\014Blo"
+    "ckMessage\022&\n\010msg_type\030\001 \001(\0162\024.eraftpb.Me"
+    "ssageType\022\n\n\002to\030\002 \001(\004\022\014\n\004from\030\003 \001(\004\022\014\n\004t"
+    "erm\030\004 \001(\004\022\"\n\nprev_block\030\005 \001(\0132\016.eraftpb."
+    "Block\022\021\n\tlast_term\030\006 \001(\004\022\036\n\006blocks\030\007 \003(\013"
+    "2\016.eraftpb.Block\022\036\n\006commit\030\010 \001(\0132\016.eraft"
+    "pb.Block\022#\n\010snapshot\030\t \001(\0132\021.eraftpb.Sna"
+    "pshot\022\016\n\006reject\030\n \001(\010\"\340\001\n\007Message\022&\n\010msg"
+    "_type\030\001 \001(\0162\024.eraftpb.MessageType\022\n\n\002to\030"
+    "\002 \001(\004\022\014\n\004from\030\003 \001(\004\022\014\n\004term\030\004 \001(\004\022\020\n\010log"
+    "_term\030\005 \001(\004\022\r\n\005index\030\006 \001(\004\022\037\n\007entries\030\007 "
+    "\003(\0132\016.eraftpb.Entry\022\016\n\006commit\030\010 \001(\004\022#\n\010s"
+    "napshot\030\t \001(\0132\021.eraftpb.Snapshot\022\016\n\006reje"
+    "ct\030\n \001(\010\"7\n\tHardState\022\014\n\004term\030\001 \001(\004\022\014\n\004v"
+    "ote\030\002 \001(\004\022\016\n\006commit\030\003 \001(\004\"\032\n\tConfState\022\r"
+    "\n\005nodes\030\001 \003(\004\"\\\n\nConfChange\022,\n\013change_ty"
+    "pe\030\001 \001(\0162\027.eraftpb.ConfChangeType\022\017\n\007nod"
+    "e_id\030\002 \001(\004\022\017\n\007context\030\003 \001(\014*G\n\tEntryType"
+    "\022\017\n\013EntryNormal\020\000\022\023\n\017EntryConfChange\020\001\022\024"
+    "\n\020EntrySplitRegion\020\002*\213\002\n\013MessageType\022\n\n\006"
+    "MsgHup\020\000\022\013\n\007MsgBeat\020\001\022\016\n\nMsgPropose\020\002\022\r\n"
+    "\tMsgAppend\020\003\022\025\n\021MsgAppendResponse\020\004\022\022\n\016M"
+    "sgRequestVote\020\005\022\032\n\026MsgRequestVoteRespons"
+    "e\020\006\022\017\n\013MsgSnapshot\020\007\022\020\n\014MsgHeartbeat\020\010\022\030"
+    "\n\024MsgHeartbeatResponse\020\t\022\025\n\021MsgTransferL"
+    "eader\020\013\022\021\n\rMsgTimeoutNow\020\014\022\026\n\022MsgEntryCo"
+    "nfChange\020\r*-\n\016ConfChangeType\022\013\n\007AddNode\020"
+    "\000\022\016\n\nRemoveNode\020\001b\006proto3", 1425);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "eraftpb.proto", &protobuf_RegisterTypes);
   Entry::default_instance_ = new Entry();
+  Block::default_instance_ = new Block();
   SnapshotMetadata::default_instance_ = new SnapshotMetadata();
   Snapshot::default_instance_ = new Snapshot();
+  BlockMessage::default_instance_ = new BlockMessage();
   Message::default_instance_ = new Message();
   HardState::default_instance_ = new HardState();
   ConfState::default_instance_ = new ConfState();
   ConfChange::default_instance_ = new ConfChange();
   Entry::default_instance_->InitAsDefaultInstance();
+  Block::default_instance_->InitAsDefaultInstance();
   SnapshotMetadata::default_instance_->InitAsDefaultInstance();
   Snapshot::default_instance_->InitAsDefaultInstance();
+  BlockMessage::default_instance_->InitAsDefaultInstance();
   Message::default_instance_->InitAsDefaultInstance();
   HardState::default_instance_->InitAsDefaultInstance();
   ConfState::default_instance_->InitAsDefaultInstance();
@@ -794,6 +862,386 @@ void Entry::clear_data() {
   }
   data_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), data);
   // @@protoc_insertion_point(field_set_allocated:eraftpb.Entry.data)
+}
+
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
+
+// ===================================================================
+
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+const int Block::kEntryTypeFieldNumber;
+const int Block::kUidFieldNumber;
+const int Block::kDataFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+Block::Block()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:eraftpb.Block)
+}
+
+void Block::InitAsDefaultInstance() {
+  _is_default_instance_ = true;
+}
+
+Block::Block(const Block& from)
+  : ::google::protobuf::Message(),
+    _internal_metadata_(NULL) {
+  SharedCtor();
+  MergeFrom(from);
+  // @@protoc_insertion_point(copy_constructor:eraftpb.Block)
+}
+
+void Block::SharedCtor() {
+    _is_default_instance_ = false;
+  ::google::protobuf::internal::GetEmptyString();
+  _cached_size_ = 0;
+  entry_type_ = 0;
+  uid_ = GOOGLE_ULONGLONG(0);
+  data_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+
+Block::~Block() {
+  // @@protoc_insertion_point(destructor:eraftpb.Block)
+  SharedDtor();
+}
+
+void Block::SharedDtor() {
+  data_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (this != default_instance_) {
+  }
+}
+
+void Block::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* Block::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return Block_descriptor_;
+}
+
+const Block& Block::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_eraftpb_2eproto();
+  return *default_instance_;
+}
+
+Block* Block::default_instance_ = NULL;
+
+Block* Block::New(::google::protobuf::Arena* arena) const {
+  Block* n = new Block;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
+}
+
+void Block::Clear() {
+// @@protoc_insertion_point(message_clear_start:eraftpb.Block)
+  entry_type_ = 0;
+  uid_ = GOOGLE_ULONGLONG(0);
+  data_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+
+bool Block::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:eraftpb.Block)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional .eraftpb.EntryType entry_type = 1;
+      case 1: {
+        if (tag == 8) {
+          int value;
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
+                 input, &value)));
+          set_entry_type(static_cast< ::eraftpb::EntryType >(value));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(16)) goto parse_uid;
+        break;
+      }
+
+      // optional uint64 uid = 2;
+      case 2: {
+        if (tag == 16) {
+         parse_uid:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &uid_)));
+
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(26)) goto parse_data;
+        break;
+      }
+
+      // optional bytes data = 3;
+      case 3: {
+        if (tag == 26) {
+         parse_data:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->mutable_data()));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectAtEnd()) goto success;
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:eraftpb.Block)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:eraftpb.Block)
+  return false;
+#undef DO_
+}
+
+void Block::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:eraftpb.Block)
+  // optional .eraftpb.EntryType entry_type = 1;
+  if (this->entry_type() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      1, this->entry_type(), output);
+  }
+
+  // optional uint64 uid = 2;
+  if (this->uid() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(2, this->uid(), output);
+  }
+
+  // optional bytes data = 3;
+  if (this->data().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytesMaybeAliased(
+      3, this->data(), output);
+  }
+
+  // @@protoc_insertion_point(serialize_end:eraftpb.Block)
+}
+
+::google::protobuf::uint8* Block::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  // @@protoc_insertion_point(serialize_to_array_start:eraftpb.Block)
+  // optional .eraftpb.EntryType entry_type = 1;
+  if (this->entry_type() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
+      1, this->entry_type(), target);
+  }
+
+  // optional uint64 uid = 2;
+  if (this->uid() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(2, this->uid(), target);
+  }
+
+  // optional bytes data = 3;
+  if (this->data().size() > 0) {
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
+        3, this->data(), target);
+  }
+
+  // @@protoc_insertion_point(serialize_to_array_end:eraftpb.Block)
+  return target;
+}
+
+int Block::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:eraftpb.Block)
+  int total_size = 0;
+
+  // optional .eraftpb.EntryType entry_type = 1;
+  if (this->entry_type() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::EnumSize(this->entry_type());
+  }
+
+  // optional uint64 uid = 2;
+  if (this->uid() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt64Size(
+        this->uid());
+  }
+
+  // optional bytes data = 3;
+  if (this->data().size() > 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::BytesSize(
+        this->data());
+  }
+
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void Block::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:eraftpb.Block)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  const Block* source = 
+      ::google::protobuf::internal::DynamicCastToGenerated<const Block>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:eraftpb.Block)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:eraftpb.Block)
+    MergeFrom(*source);
+  }
+}
+
+void Block::MergeFrom(const Block& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:eraftpb.Block)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  if (from.entry_type() != 0) {
+    set_entry_type(from.entry_type());
+  }
+  if (from.uid() != 0) {
+    set_uid(from.uid());
+  }
+  if (from.data().size() > 0) {
+
+    data_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.data_);
+  }
+}
+
+void Block::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:eraftpb.Block)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void Block::CopyFrom(const Block& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:eraftpb.Block)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool Block::IsInitialized() const {
+
+  return true;
+}
+
+void Block::Swap(Block* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void Block::InternalSwap(Block* other) {
+  std::swap(entry_type_, other->entry_type_);
+  std::swap(uid_, other->uid_);
+  data_.Swap(&other->data_);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  std::swap(_cached_size_, other->_cached_size_);
+}
+
+::google::protobuf::Metadata Block::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = Block_descriptor_;
+  metadata.reflection = Block_reflection_;
+  return metadata;
+}
+
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// Block
+
+// optional .eraftpb.EntryType entry_type = 1;
+void Block::clear_entry_type() {
+  entry_type_ = 0;
+}
+ ::eraftpb::EntryType Block::entry_type() const {
+  // @@protoc_insertion_point(field_get:eraftpb.Block.entry_type)
+  return static_cast< ::eraftpb::EntryType >(entry_type_);
+}
+ void Block::set_entry_type(::eraftpb::EntryType value) {
+  
+  entry_type_ = value;
+  // @@protoc_insertion_point(field_set:eraftpb.Block.entry_type)
+}
+
+// optional uint64 uid = 2;
+void Block::clear_uid() {
+  uid_ = GOOGLE_ULONGLONG(0);
+}
+ ::google::protobuf::uint64 Block::uid() const {
+  // @@protoc_insertion_point(field_get:eraftpb.Block.uid)
+  return uid_;
+}
+ void Block::set_uid(::google::protobuf::uint64 value) {
+  
+  uid_ = value;
+  // @@protoc_insertion_point(field_set:eraftpb.Block.uid)
+}
+
+// optional bytes data = 3;
+void Block::clear_data() {
+  data_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ const ::std::string& Block::data() const {
+  // @@protoc_insertion_point(field_get:eraftpb.Block.data)
+  return data_.GetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void Block::set_data(const ::std::string& value) {
+  
+  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:eraftpb.Block.data)
+}
+ void Block::set_data(const char* value) {
+  
+  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:eraftpb.Block.data)
+}
+ void Block::set_data(const void* value, size_t size) {
+  
+  data_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:eraftpb.Block.data)
+}
+ ::std::string* Block::mutable_data() {
+  
+  // @@protoc_insertion_point(field_mutable:eraftpb.Block.data)
+  return data_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ ::std::string* Block::release_data() {
+  // @@protoc_insertion_point(field_release:eraftpb.Block.data)
+  
+  return data_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+ void Block::set_allocated_data(::std::string* data) {
+  if (data != NULL) {
+    
+  } else {
+    
+  }
+  data_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), data);
+  // @@protoc_insertion_point(field_set_allocated:eraftpb.Block.data)
 }
 
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
@@ -1538,6 +1986,842 @@ void Snapshot::set_allocated_metadata(::eraftpb::SnapshotMetadata* metadata) {
     
   }
   // @@protoc_insertion_point(field_set_allocated:eraftpb.Snapshot.metadata)
+}
+
+#endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
+
+// ===================================================================
+
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+const int BlockMessage::kMsgTypeFieldNumber;
+const int BlockMessage::kToFieldNumber;
+const int BlockMessage::kFromFieldNumber;
+const int BlockMessage::kTermFieldNumber;
+const int BlockMessage::kPrevBlockFieldNumber;
+const int BlockMessage::kLastTermFieldNumber;
+const int BlockMessage::kBlocksFieldNumber;
+const int BlockMessage::kCommitFieldNumber;
+const int BlockMessage::kSnapshotFieldNumber;
+const int BlockMessage::kRejectFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+BlockMessage::BlockMessage()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:eraftpb.BlockMessage)
+}
+
+void BlockMessage::InitAsDefaultInstance() {
+  _is_default_instance_ = true;
+  prev_block_ = const_cast< ::eraftpb::Block*>(&::eraftpb::Block::default_instance());
+  commit_ = const_cast< ::eraftpb::Block*>(&::eraftpb::Block::default_instance());
+  snapshot_ = const_cast< ::eraftpb::Snapshot*>(&::eraftpb::Snapshot::default_instance());
+}
+
+BlockMessage::BlockMessage(const BlockMessage& from)
+  : ::google::protobuf::Message(),
+    _internal_metadata_(NULL) {
+  SharedCtor();
+  MergeFrom(from);
+  // @@protoc_insertion_point(copy_constructor:eraftpb.BlockMessage)
+}
+
+void BlockMessage::SharedCtor() {
+    _is_default_instance_ = false;
+  _cached_size_ = 0;
+  msg_type_ = 0;
+  to_ = GOOGLE_ULONGLONG(0);
+  from_ = GOOGLE_ULONGLONG(0);
+  term_ = GOOGLE_ULONGLONG(0);
+  prev_block_ = NULL;
+  last_term_ = GOOGLE_ULONGLONG(0);
+  commit_ = NULL;
+  snapshot_ = NULL;
+  reject_ = false;
+}
+
+BlockMessage::~BlockMessage() {
+  // @@protoc_insertion_point(destructor:eraftpb.BlockMessage)
+  SharedDtor();
+}
+
+void BlockMessage::SharedDtor() {
+  if (this != default_instance_) {
+    delete prev_block_;
+    delete commit_;
+    delete snapshot_;
+  }
+}
+
+void BlockMessage::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* BlockMessage::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return BlockMessage_descriptor_;
+}
+
+const BlockMessage& BlockMessage::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_eraftpb_2eproto();
+  return *default_instance_;
+}
+
+BlockMessage* BlockMessage::default_instance_ = NULL;
+
+BlockMessage* BlockMessage::New(::google::protobuf::Arena* arena) const {
+  BlockMessage* n = new BlockMessage;
+  if (arena != NULL) {
+    arena->Own(n);
+  }
+  return n;
+}
+
+void BlockMessage::Clear() {
+// @@protoc_insertion_point(message_clear_start:eraftpb.BlockMessage)
+#if defined(__clang__)
+#define ZR_HELPER_(f) \
+  _Pragma("clang diagnostic push") \
+  _Pragma("clang diagnostic ignored \"-Winvalid-offsetof\"") \
+  __builtin_offsetof(BlockMessage, f) \
+  _Pragma("clang diagnostic pop")
+#else
+#define ZR_HELPER_(f) reinterpret_cast<char*>(\
+  &reinterpret_cast<BlockMessage*>(16)->f)
+#endif
+
+#define ZR_(first, last) do {\
+  ::memset(&first, 0,\
+           ZR_HELPER_(last) - ZR_HELPER_(first) + sizeof(last));\
+} while (0)
+
+  ZR_(to_, term_);
+  msg_type_ = 0;
+  if (GetArenaNoVirtual() == NULL && prev_block_ != NULL) delete prev_block_;
+  prev_block_ = NULL;
+  last_term_ = GOOGLE_ULONGLONG(0);
+  if (GetArenaNoVirtual() == NULL && commit_ != NULL) delete commit_;
+  commit_ = NULL;
+  if (GetArenaNoVirtual() == NULL && snapshot_ != NULL) delete snapshot_;
+  snapshot_ = NULL;
+  reject_ = false;
+
+#undef ZR_HELPER_
+#undef ZR_
+
+  blocks_.Clear();
+}
+
+bool BlockMessage::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:eraftpb.BlockMessage)
+  for (;;) {
+    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoff(127);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional .eraftpb.MessageType msg_type = 1;
+      case 1: {
+        if (tag == 8) {
+          int value;
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
+                 input, &value)));
+          set_msg_type(static_cast< ::eraftpb::MessageType >(value));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(16)) goto parse_to;
+        break;
+      }
+
+      // optional uint64 to = 2;
+      case 2: {
+        if (tag == 16) {
+         parse_to:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &to_)));
+
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(24)) goto parse_from;
+        break;
+      }
+
+      // optional uint64 from = 3;
+      case 3: {
+        if (tag == 24) {
+         parse_from:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &from_)));
+
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(32)) goto parse_term;
+        break;
+      }
+
+      // optional uint64 term = 4;
+      case 4: {
+        if (tag == 32) {
+         parse_term:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &term_)));
+
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(42)) goto parse_prev_block;
+        break;
+      }
+
+      // optional .eraftpb.Block prev_block = 5;
+      case 5: {
+        if (tag == 42) {
+         parse_prev_block:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_prev_block()));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(48)) goto parse_last_term;
+        break;
+      }
+
+      // optional uint64 last_term = 6;
+      case 6: {
+        if (tag == 48) {
+         parse_last_term:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &last_term_)));
+
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(58)) goto parse_blocks;
+        break;
+      }
+
+      // repeated .eraftpb.Block blocks = 7;
+      case 7: {
+        if (tag == 58) {
+         parse_blocks:
+          DO_(input->IncrementRecursionDepth());
+         parse_loop_blocks:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtualNoRecursionDepth(
+                input, add_blocks()));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(58)) goto parse_loop_blocks;
+        input->UnsafeDecrementRecursionDepth();
+        if (input->ExpectTag(66)) goto parse_commit;
+        break;
+      }
+
+      // optional .eraftpb.Block commit = 8;
+      case 8: {
+        if (tag == 66) {
+         parse_commit:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_commit()));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(74)) goto parse_snapshot;
+        break;
+      }
+
+      // optional .eraftpb.Snapshot snapshot = 9;
+      case 9: {
+        if (tag == 74) {
+         parse_snapshot:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_snapshot()));
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(80)) goto parse_reject;
+        break;
+      }
+
+      // optional bool reject = 10;
+      case 10: {
+        if (tag == 80) {
+         parse_reject:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &reject_)));
+
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectAtEnd()) goto success;
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0 ||
+            ::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:eraftpb.BlockMessage)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:eraftpb.BlockMessage)
+  return false;
+#undef DO_
+}
+
+void BlockMessage::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:eraftpb.BlockMessage)
+  // optional .eraftpb.MessageType msg_type = 1;
+  if (this->msg_type() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      1, this->msg_type(), output);
+  }
+
+  // optional uint64 to = 2;
+  if (this->to() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(2, this->to(), output);
+  }
+
+  // optional uint64 from = 3;
+  if (this->from() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(3, this->from(), output);
+  }
+
+  // optional uint64 term = 4;
+  if (this->term() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(4, this->term(), output);
+  }
+
+  // optional .eraftpb.Block prev_block = 5;
+  if (this->has_prev_block()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      5, *this->prev_block_, output);
+  }
+
+  // optional uint64 last_term = 6;
+  if (this->last_term() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(6, this->last_term(), output);
+  }
+
+  // repeated .eraftpb.Block blocks = 7;
+  for (unsigned int i = 0, n = this->blocks_size(); i < n; i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      7, this->blocks(i), output);
+  }
+
+  // optional .eraftpb.Block commit = 8;
+  if (this->has_commit()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      8, *this->commit_, output);
+  }
+
+  // optional .eraftpb.Snapshot snapshot = 9;
+  if (this->has_snapshot()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      9, *this->snapshot_, output);
+  }
+
+  // optional bool reject = 10;
+  if (this->reject() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(10, this->reject(), output);
+  }
+
+  // @@protoc_insertion_point(serialize_end:eraftpb.BlockMessage)
+}
+
+::google::protobuf::uint8* BlockMessage::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  // @@protoc_insertion_point(serialize_to_array_start:eraftpb.BlockMessage)
+  // optional .eraftpb.MessageType msg_type = 1;
+  if (this->msg_type() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
+      1, this->msg_type(), target);
+  }
+
+  // optional uint64 to = 2;
+  if (this->to() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(2, this->to(), target);
+  }
+
+  // optional uint64 from = 3;
+  if (this->from() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(3, this->from(), target);
+  }
+
+  // optional uint64 term = 4;
+  if (this->term() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(4, this->term(), target);
+  }
+
+  // optional .eraftpb.Block prev_block = 5;
+  if (this->has_prev_block()) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      InternalWriteMessageNoVirtualToArray(
+        5, *this->prev_block_, false, target);
+  }
+
+  // optional uint64 last_term = 6;
+  if (this->last_term() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(6, this->last_term(), target);
+  }
+
+  // repeated .eraftpb.Block blocks = 7;
+  for (unsigned int i = 0, n = this->blocks_size(); i < n; i++) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      InternalWriteMessageNoVirtualToArray(
+        7, this->blocks(i), false, target);
+  }
+
+  // optional .eraftpb.Block commit = 8;
+  if (this->has_commit()) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      InternalWriteMessageNoVirtualToArray(
+        8, *this->commit_, false, target);
+  }
+
+  // optional .eraftpb.Snapshot snapshot = 9;
+  if (this->has_snapshot()) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      InternalWriteMessageNoVirtualToArray(
+        9, *this->snapshot_, false, target);
+  }
+
+  // optional bool reject = 10;
+  if (this->reject() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(10, this->reject(), target);
+  }
+
+  // @@protoc_insertion_point(serialize_to_array_end:eraftpb.BlockMessage)
+  return target;
+}
+
+int BlockMessage::ByteSize() const {
+// @@protoc_insertion_point(message_byte_size_start:eraftpb.BlockMessage)
+  int total_size = 0;
+
+  // optional .eraftpb.MessageType msg_type = 1;
+  if (this->msg_type() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::EnumSize(this->msg_type());
+  }
+
+  // optional uint64 to = 2;
+  if (this->to() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt64Size(
+        this->to());
+  }
+
+  // optional uint64 from = 3;
+  if (this->from() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt64Size(
+        this->from());
+  }
+
+  // optional uint64 term = 4;
+  if (this->term() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt64Size(
+        this->term());
+  }
+
+  // optional .eraftpb.Block prev_block = 5;
+  if (this->has_prev_block()) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        *this->prev_block_);
+  }
+
+  // optional uint64 last_term = 6;
+  if (this->last_term() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt64Size(
+        this->last_term());
+  }
+
+  // optional .eraftpb.Block commit = 8;
+  if (this->has_commit()) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        *this->commit_);
+  }
+
+  // optional .eraftpb.Snapshot snapshot = 9;
+  if (this->has_snapshot()) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        *this->snapshot_);
+  }
+
+  // optional bool reject = 10;
+  if (this->reject() != 0) {
+    total_size += 1 + 1;
+  }
+
+  // repeated .eraftpb.Block blocks = 7;
+  total_size += 1 * this->blocks_size();
+  for (int i = 0; i < this->blocks_size(); i++) {
+    total_size +=
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        this->blocks(i));
+  }
+
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void BlockMessage::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:eraftpb.BlockMessage)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  const BlockMessage* source = 
+      ::google::protobuf::internal::DynamicCastToGenerated<const BlockMessage>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:eraftpb.BlockMessage)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:eraftpb.BlockMessage)
+    MergeFrom(*source);
+  }
+}
+
+void BlockMessage::MergeFrom(const BlockMessage& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:eraftpb.BlockMessage)
+  if (GOOGLE_PREDICT_FALSE(&from == this)) {
+    ::google::protobuf::internal::MergeFromFail(__FILE__, __LINE__);
+  }
+  blocks_.MergeFrom(from.blocks_);
+  if (from.msg_type() != 0) {
+    set_msg_type(from.msg_type());
+  }
+  if (from.to() != 0) {
+    set_to(from.to());
+  }
+  if (from.from() != 0) {
+    set_from(from.from());
+  }
+  if (from.term() != 0) {
+    set_term(from.term());
+  }
+  if (from.has_prev_block()) {
+    mutable_prev_block()->::eraftpb::Block::MergeFrom(from.prev_block());
+  }
+  if (from.last_term() != 0) {
+    set_last_term(from.last_term());
+  }
+  if (from.has_commit()) {
+    mutable_commit()->::eraftpb::Block::MergeFrom(from.commit());
+  }
+  if (from.has_snapshot()) {
+    mutable_snapshot()->::eraftpb::Snapshot::MergeFrom(from.snapshot());
+  }
+  if (from.reject() != 0) {
+    set_reject(from.reject());
+  }
+}
+
+void BlockMessage::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:eraftpb.BlockMessage)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void BlockMessage::CopyFrom(const BlockMessage& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:eraftpb.BlockMessage)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool BlockMessage::IsInitialized() const {
+
+  return true;
+}
+
+void BlockMessage::Swap(BlockMessage* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void BlockMessage::InternalSwap(BlockMessage* other) {
+  std::swap(msg_type_, other->msg_type_);
+  std::swap(to_, other->to_);
+  std::swap(from_, other->from_);
+  std::swap(term_, other->term_);
+  std::swap(prev_block_, other->prev_block_);
+  std::swap(last_term_, other->last_term_);
+  blocks_.UnsafeArenaSwap(&other->blocks_);
+  std::swap(commit_, other->commit_);
+  std::swap(snapshot_, other->snapshot_);
+  std::swap(reject_, other->reject_);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+  std::swap(_cached_size_, other->_cached_size_);
+}
+
+::google::protobuf::Metadata BlockMessage::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = BlockMessage_descriptor_;
+  metadata.reflection = BlockMessage_reflection_;
+  return metadata;
+}
+
+#if PROTOBUF_INLINE_NOT_IN_HEADERS
+// BlockMessage
+
+// optional .eraftpb.MessageType msg_type = 1;
+void BlockMessage::clear_msg_type() {
+  msg_type_ = 0;
+}
+ ::eraftpb::MessageType BlockMessage::msg_type() const {
+  // @@protoc_insertion_point(field_get:eraftpb.BlockMessage.msg_type)
+  return static_cast< ::eraftpb::MessageType >(msg_type_);
+}
+ void BlockMessage::set_msg_type(::eraftpb::MessageType value) {
+  
+  msg_type_ = value;
+  // @@protoc_insertion_point(field_set:eraftpb.BlockMessage.msg_type)
+}
+
+// optional uint64 to = 2;
+void BlockMessage::clear_to() {
+  to_ = GOOGLE_ULONGLONG(0);
+}
+ ::google::protobuf::uint64 BlockMessage::to() const {
+  // @@protoc_insertion_point(field_get:eraftpb.BlockMessage.to)
+  return to_;
+}
+ void BlockMessage::set_to(::google::protobuf::uint64 value) {
+  
+  to_ = value;
+  // @@protoc_insertion_point(field_set:eraftpb.BlockMessage.to)
+}
+
+// optional uint64 from = 3;
+void BlockMessage::clear_from() {
+  from_ = GOOGLE_ULONGLONG(0);
+}
+ ::google::protobuf::uint64 BlockMessage::from() const {
+  // @@protoc_insertion_point(field_get:eraftpb.BlockMessage.from)
+  return from_;
+}
+ void BlockMessage::set_from(::google::protobuf::uint64 value) {
+  
+  from_ = value;
+  // @@protoc_insertion_point(field_set:eraftpb.BlockMessage.from)
+}
+
+// optional uint64 term = 4;
+void BlockMessage::clear_term() {
+  term_ = GOOGLE_ULONGLONG(0);
+}
+ ::google::protobuf::uint64 BlockMessage::term() const {
+  // @@protoc_insertion_point(field_get:eraftpb.BlockMessage.term)
+  return term_;
+}
+ void BlockMessage::set_term(::google::protobuf::uint64 value) {
+  
+  term_ = value;
+  // @@protoc_insertion_point(field_set:eraftpb.BlockMessage.term)
+}
+
+// optional .eraftpb.Block prev_block = 5;
+bool BlockMessage::has_prev_block() const {
+  return !_is_default_instance_ && prev_block_ != NULL;
+}
+void BlockMessage::clear_prev_block() {
+  if (GetArenaNoVirtual() == NULL && prev_block_ != NULL) delete prev_block_;
+  prev_block_ = NULL;
+}
+const ::eraftpb::Block& BlockMessage::prev_block() const {
+  // @@protoc_insertion_point(field_get:eraftpb.BlockMessage.prev_block)
+  return prev_block_ != NULL ? *prev_block_ : *default_instance_->prev_block_;
+}
+::eraftpb::Block* BlockMessage::mutable_prev_block() {
+  
+  if (prev_block_ == NULL) {
+    prev_block_ = new ::eraftpb::Block;
+  }
+  // @@protoc_insertion_point(field_mutable:eraftpb.BlockMessage.prev_block)
+  return prev_block_;
+}
+::eraftpb::Block* BlockMessage::release_prev_block() {
+  // @@protoc_insertion_point(field_release:eraftpb.BlockMessage.prev_block)
+  
+  ::eraftpb::Block* temp = prev_block_;
+  prev_block_ = NULL;
+  return temp;
+}
+void BlockMessage::set_allocated_prev_block(::eraftpb::Block* prev_block) {
+  delete prev_block_;
+  prev_block_ = prev_block;
+  if (prev_block) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_set_allocated:eraftpb.BlockMessage.prev_block)
+}
+
+// optional uint64 last_term = 6;
+void BlockMessage::clear_last_term() {
+  last_term_ = GOOGLE_ULONGLONG(0);
+}
+ ::google::protobuf::uint64 BlockMessage::last_term() const {
+  // @@protoc_insertion_point(field_get:eraftpb.BlockMessage.last_term)
+  return last_term_;
+}
+ void BlockMessage::set_last_term(::google::protobuf::uint64 value) {
+  
+  last_term_ = value;
+  // @@protoc_insertion_point(field_set:eraftpb.BlockMessage.last_term)
+}
+
+// repeated .eraftpb.Block blocks = 7;
+int BlockMessage::blocks_size() const {
+  return blocks_.size();
+}
+void BlockMessage::clear_blocks() {
+  blocks_.Clear();
+}
+const ::eraftpb::Block& BlockMessage::blocks(int index) const {
+  // @@protoc_insertion_point(field_get:eraftpb.BlockMessage.blocks)
+  return blocks_.Get(index);
+}
+::eraftpb::Block* BlockMessage::mutable_blocks(int index) {
+  // @@protoc_insertion_point(field_mutable:eraftpb.BlockMessage.blocks)
+  return blocks_.Mutable(index);
+}
+::eraftpb::Block* BlockMessage::add_blocks() {
+  // @@protoc_insertion_point(field_add:eraftpb.BlockMessage.blocks)
+  return blocks_.Add();
+}
+::google::protobuf::RepeatedPtrField< ::eraftpb::Block >*
+BlockMessage::mutable_blocks() {
+  // @@protoc_insertion_point(field_mutable_list:eraftpb.BlockMessage.blocks)
+  return &blocks_;
+}
+const ::google::protobuf::RepeatedPtrField< ::eraftpb::Block >&
+BlockMessage::blocks() const {
+  // @@protoc_insertion_point(field_list:eraftpb.BlockMessage.blocks)
+  return blocks_;
+}
+
+// optional .eraftpb.Block commit = 8;
+bool BlockMessage::has_commit() const {
+  return !_is_default_instance_ && commit_ != NULL;
+}
+void BlockMessage::clear_commit() {
+  if (GetArenaNoVirtual() == NULL && commit_ != NULL) delete commit_;
+  commit_ = NULL;
+}
+const ::eraftpb::Block& BlockMessage::commit() const {
+  // @@protoc_insertion_point(field_get:eraftpb.BlockMessage.commit)
+  return commit_ != NULL ? *commit_ : *default_instance_->commit_;
+}
+::eraftpb::Block* BlockMessage::mutable_commit() {
+  
+  if (commit_ == NULL) {
+    commit_ = new ::eraftpb::Block;
+  }
+  // @@protoc_insertion_point(field_mutable:eraftpb.BlockMessage.commit)
+  return commit_;
+}
+::eraftpb::Block* BlockMessage::release_commit() {
+  // @@protoc_insertion_point(field_release:eraftpb.BlockMessage.commit)
+  
+  ::eraftpb::Block* temp = commit_;
+  commit_ = NULL;
+  return temp;
+}
+void BlockMessage::set_allocated_commit(::eraftpb::Block* commit) {
+  delete commit_;
+  commit_ = commit;
+  if (commit) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_set_allocated:eraftpb.BlockMessage.commit)
+}
+
+// optional .eraftpb.Snapshot snapshot = 9;
+bool BlockMessage::has_snapshot() const {
+  return !_is_default_instance_ && snapshot_ != NULL;
+}
+void BlockMessage::clear_snapshot() {
+  if (GetArenaNoVirtual() == NULL && snapshot_ != NULL) delete snapshot_;
+  snapshot_ = NULL;
+}
+const ::eraftpb::Snapshot& BlockMessage::snapshot() const {
+  // @@protoc_insertion_point(field_get:eraftpb.BlockMessage.snapshot)
+  return snapshot_ != NULL ? *snapshot_ : *default_instance_->snapshot_;
+}
+::eraftpb::Snapshot* BlockMessage::mutable_snapshot() {
+  
+  if (snapshot_ == NULL) {
+    snapshot_ = new ::eraftpb::Snapshot;
+  }
+  // @@protoc_insertion_point(field_mutable:eraftpb.BlockMessage.snapshot)
+  return snapshot_;
+}
+::eraftpb::Snapshot* BlockMessage::release_snapshot() {
+  // @@protoc_insertion_point(field_release:eraftpb.BlockMessage.snapshot)
+  
+  ::eraftpb::Snapshot* temp = snapshot_;
+  snapshot_ = NULL;
+  return temp;
+}
+void BlockMessage::set_allocated_snapshot(::eraftpb::Snapshot* snapshot) {
+  delete snapshot_;
+  snapshot_ = snapshot;
+  if (snapshot) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_set_allocated:eraftpb.BlockMessage.snapshot)
+}
+
+// optional bool reject = 10;
+void BlockMessage::clear_reject() {
+  reject_ = false;
+}
+ bool BlockMessage::reject() const {
+  // @@protoc_insertion_point(field_get:eraftpb.BlockMessage.reject)
+  return reject_;
+}
+ void BlockMessage::set_reject(bool value) {
+  
+  reject_ = value;
+  // @@protoc_insertion_point(field_set:eraftpb.BlockMessage.reject)
 }
 
 #endif  // PROTOBUF_INLINE_NOT_IN_HEADERS
