@@ -2,11 +2,11 @@ version: '3'
 services:
   eraft-1:
     hostname: eraft-1
-    image: eraft/eraft_dev:v0.5
+    image: hub.docker.com/eraftio/eraft:latest
     volumes:
       - .:/eraft
     working_dir: /eraft
-    command: build_/kv/kvserver/kv_svr 172.19.0.11:20160 /tmp/db1 1
+    command: build_/kv/kvserver/kv_svr 172.19.0.12:20161 /tmp/db2 2
     networks:
       eraft-network:
         ipv4_address: 172.19.0.11
@@ -15,7 +15,7 @@ services:
 
   eraft-2:
     hostname: eraft-2
-    image: eraft/eraft_dev:v0.5
+    image: hub.docker.com/eraftio/eraft:latest
     volumes:
       - .:/eraft
     working_dir: /eraft
@@ -28,7 +28,7 @@ services:
 
   eraft-3:
     hostname: eraft-3
-    image: eraft/eraft_dev:v0.5
+    image: hub.docker.com/eraftio/eraft:latest
     volumes:
       - .:/eraft
     working_dir: /eraft
@@ -41,7 +41,7 @@ services:
 
   eraft-4:
     hostname: eraft-4
-    image: eraft/eraft_dev:v0.5
+    image: hub.docker.com/eraftio/eraft:latest
     volumes:
       - .:/eraft
     working_dir: /eraft

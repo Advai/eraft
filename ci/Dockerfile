@@ -12,7 +12,14 @@ RUN apt update -y \
        && apt-get update -y \
        && apt-get install -y gdb \
        && apt-get install libspdlog-dev \
-       wget 
+       && apt-get install -y golang \
+       && apt-get install -y snapd \
+       && apt-get install -y libsnappy-dev \
+       && apt-get install -y zlib1g-dev \
+       && apt-get install -y libbz2-dev \
+       && apt-get install -y liblz4-dev \
+       && apt-get install -y libzstd-dev \
+       wget
 
 RUN cd / 
 
@@ -24,5 +31,6 @@ RUN git clone https://github.com/grpc/grpc.git && cd grpc && git checkout v1.24.
 RUN git clone --branch v1.9.2 https://github.com/gabime/spdlog.git && cd spdlog && mkdir build && cd build \
        && cmake .. && make -j && make install && rm -rf build
 
+RUN export PORTABLE=1
 RUN git clone --branch v6.20.3 https://github.com/facebook/rocksdb.git && cd rocksdb && mkdir build && cd build \
-       && cmake .. && make -j && make install && rm -rf build
+       && cmake .. && PORTABLE=1 make -j2 && PORTABLE=1 make install && rm -rf build
