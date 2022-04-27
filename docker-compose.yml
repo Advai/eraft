@@ -6,7 +6,7 @@ services:
     volumes:
       - .:/eraft
     working_dir: /eraft
-    command: build_/kv/kvserver/kv_svr 172.19.0.12:20161 /tmp/db2 2
+    command: build_/kv/kvserver/kv_svr 172.19.0.12:20160 /tmp/db2 2
     networks:
       eraft-network:
         ipv4_address: 172.19.0.11
