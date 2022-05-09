@@ -18,5 +18,8 @@ run-single:
 into:
 	docker run --rm -it -p 127.0.0.1:6379:6379 --user root -v ${PWD}:/eraft eraft/eraft_pmem:v2 /bin/bash
 
+# test:
+# 	docker run --rm -v ${PWD}:/eraft eraft/eraft_pmem:v2 /eraft/build_/raftcore/test/raft_tests;
+
 test:
-	docker run --rm -v ${PWD}:/eraft eraft/eraft_pmem:v2 /eraft/build_/raftcore/test/raft_tests;
+	docker run -i -v ${PWD}:/eraft eraft/eraft_pmem:v2 /eraft/scripts/run_benchmark.sh;

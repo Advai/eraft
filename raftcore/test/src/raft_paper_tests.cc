@@ -49,7 +49,7 @@
 TEST(RaftPaperTests, TestFollowerUpdateTermFromMessage2AA) {
   std::shared_ptr<eraft::StorageInterface> memSt =
       std::make_shared<eraft::MemoryStorage>();
-  std::vector<uint64_t> peers = {1, 2, 3};
+  std::vector<uint64_t> peers = {1, 2, 3, 4};
   eraft::Config c(1, peers, 10, 1, memSt);
   std::shared_ptr<eraft::RaftContext> r =
       std::make_shared<eraft::RaftContext>(c);
@@ -65,7 +65,7 @@ TEST(RaftPaperTests, TestFollowerUpdateTermFromMessage2AA) {
 TEST(RaftPaperTests, TestCandidateUpdateTermFromMessage2AA) {
   std::shared_ptr<eraft::StorageInterface> memSt =
       std::make_shared<eraft::MemoryStorage>();
-  std::vector<uint64_t> peers = {1, 2, 3};
+  std::vector<uint64_t> peers = {1, 2, 3, 4};
   eraft::Config c(1, peers, 10, 1, memSt);
   std::shared_ptr<eraft::RaftContext> r =
       std::make_shared<eraft::RaftContext>(c);
@@ -100,7 +100,7 @@ TEST(RaftPaperTests, TestLeaderUpdateTermFromMessage2AA) {
 TEST(RaftPaperTests, TestStartAsFollower2AA) {
   std::shared_ptr<eraft::StorageInterface> memSt =
       std::make_shared<eraft::MemoryStorage>();
-  std::vector<uint64_t> peers = {1, 2, 3};
+  std::vector<uint64_t> peers = {1, 2, 3, 4};
   eraft::Config c(1, peers, 10, 1, memSt);
   std::shared_ptr<eraft::RaftContext> r =
       std::make_shared<eraft::RaftContext>(c);
@@ -153,7 +153,7 @@ TEST(RaftPaperTests, TestFollowerStartElection2AA) {
   uint8_t et = 10;
   std::shared_ptr<eraft::StorageInterface> memSt =
       std::make_shared<eraft::MemoryStorage>();
-  std::vector<uint64_t> peers = {1, 2, 3};
+  std::vector<uint64_t> peers = {1, 2, 3, 4};
   eraft::Config c(1, peers, et, 1, memSt);
   std::shared_ptr<eraft::RaftContext> r =
       std::make_shared<eraft::RaftContext>(c);
@@ -184,7 +184,7 @@ TEST(RaftPaperTests, TestCandidateStartNewElection2AA) {
   uint8_t et = 10;
   std::shared_ptr<eraft::StorageInterface> memSt =
       std::make_shared<eraft::MemoryStorage>();
-  std::vector<uint64_t> peers = {1, 2, 3};
+  std::vector<uint64_t> peers = {1, 2, 3, 4};
   eraft::Config c(1, peers, et, 3, memSt);
   std::shared_ptr<eraft::RaftContext> r =
       std::make_shared<eraft::RaftContext>(c);
@@ -243,26 +243,26 @@ TEST(RaftPaperTests, TestLeaderElectionInOneRoundRPC2AA) {
   // win the election when receiving votes from a majority of the servers
   tests.push_back(
       TestEntry(1, std::map<uint64_t, bool>{}, eraft::NodeState::StateLeader));
-  tests.push_back(TestEntry(3, std::map<uint64_t, bool>{{2, true}, {3, true}},
+  tests.push_back(TestEntry(4, std::map<uint64_t, bool>{{2, true}, {3, true}},
                             eraft::NodeState::StateLeader));
-  tests.push_back(TestEntry(3, std::map<uint64_t, bool>{{2, true}},
+  tests.push_back(TestEntry(4, std::map<uint64_t, bool>{{2, true}, {3, true}},
                             eraft::NodeState::StateLeader));
   tests.push_back(TestEntry(
-      5, std::map<uint64_t, bool>{{2, true}, {3, true}, {4, true}, {5, true}},
+      6, std::map<uint64_t, bool>{{2, true}, {3, true}, {4, true}, {5, true}},
       eraft::NodeState::StateLeader));
   tests.push_back(
-      TestEntry(5, std::map<uint64_t, bool>{{2, true}, {3, true}, {4, true}},
+      TestEntry(6, std::map<uint64_t, bool>{{2, true}, {3, true}, {4, true}},
                 eraft::NodeState::StateLeader));
-  tests.push_back(TestEntry(5, std::map<uint64_t, bool>{{2, true}, {3, true}},
+  tests.push_back(TestEntry(6, std::map<uint64_t, bool>{{2, true}, {3, true}, {4, true}},
                             eraft::NodeState::StateLeader));
 
-  tests.push_back(TestEntry(3, std::map<uint64_t, bool>{},
+  tests.push_back(TestEntry(4, std::map<uint64_t, bool>{},
                             eraft::NodeState::StateCandidate));
-  tests.push_back(TestEntry(5, std::map<uint64_t, bool>{{2, true}},
+  tests.push_back(TestEntry(6, std::map<uint64_t, bool>{{2, true}},
                             eraft::NodeState::StateCandidate));
-  tests.push_back(TestEntry(5, std::map<uint64_t, bool>{{2, false}, {3, false}},
+  tests.push_back(TestEntry(6, std::map<uint64_t, bool>{{2, false}, {3, false}},
                             eraft::NodeState::StateCandidate));
-  tests.push_back(TestEntry(5, std::map<uint64_t, bool>{},
+  tests.push_back(TestEntry(6, std::map<uint64_t, bool>{},
                             eraft::NodeState::StateCandidate));
 
   for (auto tt : tests) {
@@ -320,7 +320,7 @@ TEST(RaftPaperTests, TestFollowerVote2AA) {
   for (auto tt : tests) {
     std::shared_ptr<eraft::StorageInterface> memSt =
         std::make_shared<eraft::MemoryStorage>();
-    std::vector<uint64_t> peers = {1, 2, 3};
+    std::vector<uint64_t> peers = {1, 2, 3, 4};
     eraft::Config c(1, peers, 10, 1, memSt);
     std::shared_ptr<eraft::RaftContext> r =
         std::make_shared<eraft::RaftContext>(c);
@@ -370,7 +370,7 @@ TEST(RaftPaperTests, TestCandidateFallback2AA) {
   for (auto tt : tests) {
     std::shared_ptr<eraft::StorageInterface> memSt =
         std::make_shared<eraft::MemoryStorage>();
-    std::vector<uint64_t> peers = {1, 2, 3};
+    std::vector<uint64_t> peers = {1, 2, 3, 4};
     eraft::Config c(1, peers, 10, 1, memSt);
     std::shared_ptr<eraft::RaftContext> r =
         std::make_shared<eraft::RaftContext>(c);
@@ -397,7 +397,7 @@ TEST(RaftPaperTests, TestFollowerElectionTimeoutRandomized2AA) {
   uint8_t et = 10;
   std::shared_ptr<eraft::StorageInterface> memSt =
       std::make_shared<eraft::MemoryStorage>();
-  std::vector<uint64_t> peers = {1, 2, 3};
+  std::vector<uint64_t> peers = {1, 2, 3, 4};
   eraft::Config c(1, peers, et, 1, memSt);
   std::shared_ptr<eraft::RaftContext> r =
       std::make_shared<eraft::RaftContext>(c);
@@ -424,7 +424,7 @@ TEST(RaftPaperTests, TestCandidateElectionTimeoutRandomized2AA) {
   uint8_t et = 10;
   std::shared_ptr<eraft::StorageInterface> memSt =
       std::make_shared<eraft::MemoryStorage>();
-  std::vector<uint64_t> peers = {1, 2, 3};
+  std::vector<uint64_t> peers = {1, 2, 3, 4};
   eraft::Config c(1, peers, et, 1, memSt);
   std::shared_ptr<eraft::RaftContext> r =
       std::make_shared<eraft::RaftContext>(c);
@@ -454,7 +454,7 @@ TEST(RaftPaperTests, TestCandidateElectionTimeoutRandomized2AA) {
 
 TEST(RaftPaperTests, TestFollowersElectionTimeoutNonconflict2AA) {
   uint64_t et = 10;
-  uint64_t size = 5;
+  uint64_t size = 6;
   std::vector<uint64_t> ids = IdsBySize(size);
 
   std::shared_ptr<eraft::StorageInterface> memSt =
@@ -528,7 +528,7 @@ TEST(RaftPaperTests, TestFollowersElectionTimeoutNonconflict2AA) {
 
 TEST(RaftPaperTests, TestCandidatesElectionTimeoutNonconflict2AA) {
   uint64_t et = 10;
-  uint64_t size = 5;
+  uint64_t size = 6;
   std::vector<uint64_t> ids = IdsBySize(size);
 
   std::shared_ptr<eraft::StorageInterface> memSt =
@@ -655,7 +655,7 @@ static bool CommitNoopEntry(std::shared_ptr<eraft::RaftContext> r,
 TEST(RaftPaperTests, TestLeaderStartReplication2AB) {
   std::shared_ptr<eraft::MemoryStorage> memSt =
       std::make_shared<eraft::MemoryStorage>();
-  std::vector<uint64_t> ids = IdsBySize(3);
+  std::vector<uint64_t> ids = IdsBySize(4);
   eraft::Config c(1, ids, 10, 1, memSt);
   std::shared_ptr<eraft::RaftContext> r =
       std::make_shared<eraft::RaftContext>(c);
@@ -706,7 +706,7 @@ TEST(RaftPaperTests, TestLeaderStartReplication2AB) {
 TEST(RaftPaperTests, TestLeaderCommitEntry2AB) {
   std::shared_ptr<eraft::MemoryStorage> memSt =
       std::make_shared<eraft::MemoryStorage>();
-  std::vector<uint64_t> ids = IdsBySize(3);
+  std::vector<uint64_t> ids = IdsBySize(4);
   eraft::Config c(1, ids, 10, 1, memSt);
   std::shared_ptr<eraft::RaftContext> r =
       std::make_shared<eraft::RaftContext>(c);
@@ -795,14 +795,14 @@ TEST(RaftPaperTests, TestLeaderAcknowledgeCommit2AB) {
   };
 
   std::vector<TestEntry2> testCases{
-      TestEntry2(3, std::map<uint64_t, bool>{{2, true}}, true),
-      TestEntry2(3, std::map<uint64_t, bool>{{2, true}, {3, true}}, true),
-      TestEntry2(5, std::map<uint64_t, bool>{{2, true}}, false),
-      TestEntry2(5, std::map<uint64_t, bool>{{2, true}, {3, true}}, true),
-      TestEntry2(5, std::map<uint64_t, bool>{{2, true}, {3, true}, {4, true}},
+      TestEntry2(4, std::map<uint64_t, bool>{{2, true}}, true),
+      TestEntry2(4, std::map<uint64_t, bool>{{2, true}, {3, true}}, true),
+      TestEntry2(6, std::map<uint64_t, bool>{{2, true}}, false),
+      TestEntry2(6, std::map<uint64_t, bool>{{2, true}, {3, true}}, true),
+      TestEntry2(6, std::map<uint64_t, bool>{{2, true}, {3, true}, {4, true}},
                  true),
       TestEntry2(
-          5,
+          6,
           std::map<uint64_t, bool>{{2, true}, {3, true}, {4, true}, {5, true}},
           true),
   };
@@ -810,9 +810,9 @@ TEST(RaftPaperTests, TestLeaderAcknowledgeCommit2AB) {
   runtest(testCases);
 
   std::vector<TestEntry2> testCasesEx{
-      TestEntry2(1, {}, true),
-      TestEntry2(3, {}, false),
-      TestEntry2(5, {}, false),
+      TestEntry2(2, {}, true),
+      TestEntry2(4, {}, false),
+      TestEntry2(6, {}, false),
   };
 
   runtest(testCasesEx);
@@ -848,7 +848,7 @@ TEST(RaftPaperTests, TestLeaderCommitPrecedingEntries2AB) {
         std::make_shared<eraft::MemoryStorage>();
     memSt->Append(tt);
 
-    std::vector<uint64_t> ids = IdsBySize(3);
+    std::vector<uint64_t> ids = IdsBySize(4);
     eraft::Config c(1, ids, 10, 1, memSt);
     std::shared_ptr<eraft::RaftContext> r =
         std::make_shared<eraft::RaftContext>(c);
@@ -918,7 +918,7 @@ TEST(RaftPaperTests, TestFollowerCommitEntry2AB) {
   for (auto tt : tests) {
     std::shared_ptr<eraft::StorageInterface> memSt =
         std::make_shared<eraft::MemoryStorage>();
-    std::vector<uint64_t> ids = IdsBySize(3);
+    std::vector<uint64_t> ids = IdsBySize(4);
     eraft::Config c(1, ids, 10, 1, memSt);
     std::shared_ptr<eraft::RaftContext> r =
         std::make_shared<eraft::RaftContext>(c);
@@ -1002,7 +1002,7 @@ TEST(RaftPaperTests, TestFollowerCheckMessageType_MsgAppend2AB) {
     std::shared_ptr<eraft::MemoryStorage> memSt =
         std::make_shared<eraft::MemoryStorage>();
     memSt->Append(ents);
-    std::vector<uint64_t> ids = IdsBySize(3);
+    std::vector<uint64_t> ids = IdsBySize(4);
     eraft::Config c(1, ids, 10, 1, memSt);
     std::shared_ptr<eraft::RaftContext> r =
         std::make_shared<eraft::RaftContext>(c);
@@ -1096,7 +1096,7 @@ TEST(RaftPaperTests, TestFollowerAppendEntries2AB) {
     std::shared_ptr<eraft::MemoryStorage> memSt =
         std::make_shared<eraft::MemoryStorage>();
     memSt->Append(std::vector<eraftpb::Entry>{en_1_1, en_2_2});
-    std::vector<uint64_t> ids = IdsBySize(3);
+    std::vector<uint64_t> ids = IdsBySize(4);
     eraft::Config c(1, ids, 10, 1, memSt);
     std::shared_ptr<eraft::RaftContext> r =
         std::make_shared<eraft::RaftContext>(c);
@@ -1163,7 +1163,7 @@ TEST(RaftPaperTests, TestVoteRequest2AB) {
   for (auto tt : tests) {
     std::shared_ptr<eraft::StorageInterface> memSt =
         std::make_shared<eraft::MemoryStorage>();
-    std::vector<uint64_t> ids = IdsBySize(3);
+    std::vector<uint64_t> ids = IdsBySize(4);
     eraft::Config c(1, ids, 10, 1, memSt);
     std::shared_ptr<eraft::RaftContext> r =
         std::make_shared<eraft::RaftContext>(c);

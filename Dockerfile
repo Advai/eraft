@@ -17,7 +17,9 @@ ARG SKIP_LIBPMEMOBJCPP_BUILD
 ARG BASE_DEPS="\
 	cmake \
 	build-essential \
-	git"
+	git \
+	time \
+	bc"
 
 # Dependencies for compiling pmemkv project
 ARG PMEMKV_DEPS="\
