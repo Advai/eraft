@@ -69,6 +69,7 @@ size_t RaftContext::hash_combine(size_t lhs, size_t rhs) {
   lhs ^= rhs + 0x9e3779b9 + (lhs << 6) + (lhs >> 2);
   return lhs;
 }
+
 RaftContext::RaftContext(Config& c)
     : electionElapsed_(0), heartbeatElapsed_(0) {
   assert(c.Validate());
@@ -745,16 +746,31 @@ bool RaftContext::HandleRequestVote_b(eraftpb::BlockMessage m) {
   }
   // m.index() = last appended term of candidate here
   // if follower has greater last appended term, reject
-  if (m.last_term() <= this->raftLog_->lastAppendedTerm) {
-    bool uptoDate = false;
-    if (m.last_term() == this->raftLog_->lastAppendedTerm) {
-      // check if heads are same or if candidate head extends follower's head
-      uptoDate = true;
+  if (m.last_term() > this->raftLog_->lastAppendedTerm) {
+    this->SendRequestVoteResponse(m.from(), true);
+    return true;
+  }
+  bool candidateUptoDate = false;
+  if (m.last_term() == this->raftLog_->lastAppendedTerm) {
+    ListNode* followerCurr = this->raftLog_->cHeads[m.to()];
+    ListNode* candidateCurr = this->raftLog_->cHeads[m.from()];
+    if (followerCurr->block == candidateCurr->block) {
+      // candidate and follower heads are same
+      candidateUptoDate = true;
+    } else {
+      // candidate's head extends follower's head
+      while (candidateCurr != nullptr) {
+        if candidateCurr->block == followerCurr->block) {
+          candidateUptoDate = true;
+          break;
+        } 
+        candidateCurr = candidateCurr->next;
+      }
     }
-    if (!uptoDate) {
-      this->SendRequestVoteResponse(m.from(), true);
-      return true;
-    }
+  }
+  if (!candidateUptoDate) {
+    this->SendRequestVoteResponse(m.from(), true);
+    return true;
   }
   this->vote_ = m.from();
   this->electionElapsed_ = 0;
