@@ -127,6 +127,7 @@ class RaftLog {
   // std::list<eraftpb::Block> chain_; // 
   //APIs
   ListNode* FindBlock(eraftpb::Block block);
+  ListNode* WalkBackN(ListNode* head, int n);
   void RemoveSideChains();
 
   ListNode* lHead;

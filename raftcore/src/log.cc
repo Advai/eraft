@@ -178,4 +178,12 @@ ListNode* RaftLog::FindBlock(eraftpb::Block block) {
 void RaftLog::RemoveSideChains() {
   auto block = this->commitMarker->next->block;
 }
+
+ListNode* WalkBackN(ListNode* head, int n) {
+  ListNode* curr = head;
+  for (int i = 0; i < n; i++) {
+    curr = curr->next;
+  }
+  return curr;
+}
 }  // namespace eraft
