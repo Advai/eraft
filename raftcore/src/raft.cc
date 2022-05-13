@@ -443,10 +443,10 @@ void RaftContext::BecomeLeader_b() {
   this->raftLog_->lHead = newNode;
   this->BcastAppend_b();
 
-  if (this->prs_b.size() == 1) {
+  //if (this->prs_b.size() == 1) {
     //Todo.. if we are the only peer.. can just make commitMarker our head (n/2 exactly has persisited the data.. (??)
-    this->raftLog_->commitMarker = newNode;
-  } 
+    //this->raftLog_->commitMarker = newNode;
+  //} 
   SPDLOG_INFO("node become leader (block) at term " + std::to_string(this->term_));
 }
 
@@ -865,8 +865,8 @@ bool RaftContext::HandleRequestVoteResponse(eraftpb::Message m) {
 
 // DONE
 bool RaftContext::HandleAppendEntries_b(eraftpb::BlockMessage m) {
+  
   // SPDLOG_INFO("handle append entries (block) " + MessageToString(m));
-
   if (m.term() != NONE && m.term() < this->term_) {
     this->SendAppendResponse_b(m.from(), true);
     return false;
@@ -877,22 +877,47 @@ bool RaftContext::HandleAppendEntries_b(eraftpb::BlockMessage m) {
   this->lead_ = m.from();
 
   ListNode* prev = this->raftLog_->FindBlock(m.prev_block());
-  // 
-  if (!prev) {
+  if (prev == nullptr) {
     this->SendAppendResponse_b(m.from(), true);
     return false;
   }
-
-  //Update chain/head
   for (auto block : m.blocks()) {
-    ListNode* newnode;
+    ListNode* newnode = new ListNode();
     newnode->next = prev;
     newnode->block = block;
     this->raftLog_->lHead = newnode;
     prev = newnode;
   }
+  
+  if (!this->raftLog_->isSameBlock(m.commit(), this->raftLog_->commitMarker->block) {
+    //Update CommitMarker -> find offset
+    ListNode* temp = this->raftLog_->lHead;
+    int offset = 0;
+    while (!this->raftLog_->isSameBlock(temp->block, m.commit())){
+      offset++;
+      temp = temp->next;
+    }
+    //Offset = How many blocks back head->commit
+    std::vector<eraftpb::Block> blockvect;
+
+    while(!this->raftLog_->isSameBlock(temp->block, this->raftLog_->comimitMarker->block)){
+      blockvect.push_back(temp->block);
+      temp = temp->next;
+    }
+    std::reverse(blockvect.begin(), block.end())
+    //Persist chain to log using blockVect
+    for (int i = 0; i < blockvect.size(); ++i){
+      eraftpb::Entry new_ent;
+      new_ent.set_entry_type(blockvect[i].entry_type());
+      new_ent.set_data(blockvect[i].data());
+      new_ent.set_term(0)
+      new_ent.set_index(this->raftLog_->commited_ + i + 1);
+      this->raftLog_->entries_.push_back(new_ent);
+    }
+    //Update LastCommitIndex (just use size of log)
+    this->raftLog_->commited_ = this->raftLog_->entries_.size(); //Todo?? -1 
+  }
   this->raftLog_->lastAppendedTerm = this->term_;
-  //Send response rpc
   this->SendAppendResponse_b(m.from(), false);
   return true;
   }
@@ -993,12 +1018,7 @@ bool RaftContext::HandleAppendEntriesResponse_b(eraftpb::BlockMessage m) {
     this->SendTimeoutNow(m.from()); 
     this->leadTransferee_ = NONE;
   }
-  
   return true;
-}
-
-void RaftContext::LeaderCommit_b() {
-  return;
 }
 
 bool RaftContext::HandleAppendEntriesResponse(eraftpb::Message m) {
@@ -1040,6 +1060,49 @@ bool RaftContext::HandleAppendEntriesResponse(eraftpb::Message m) {
   }
 }
 
+void RaftContext::LeaderCommit_b() {
+  match.resize(this->prs_b.size());
+  uint64_t i = 0;
+  for (auto prs : this->prs_b) {
+    match[i] = prs.second->match;
+    i++;
+  }
+  std::sort(match.begin(), match.end());
+  std::reverse(match.begin(), match.end());
+  uint64_t n = match[(this->prs_b.size() - 1) / 2];
+  auto temp = this->raftLog_->lHead;
+  while (n-- > 0 && !this->raftLog_->isSameBlock(this->raftLog_->commitMarker->block, temp->block)){
+    temp = temp->next;
+  }
+  if (n > 0){
+    return;
+  }
+  auto new_commit = temp;
+  while (!this->raftLog_->isSameBlock(this->raftLog_->commitMarker->block, temp->block)){
+    blockvect.push_back(temp->block);
+    temp = temp->next;
+  }
+  this->raftLog_->commitMarker = new_commit;
+  //update leaders log
+  std::reverse(blockvect.begin(), block.end())
+  //Persist chain to log using blockVect
+  for (int i = 0; i < blockvect.size(); ++i){
+    eraftpb::Entry new_ent;
+    new_ent.set_entry_type(blockvect[i].entry_type());
+    new_ent.set_data(blockvect[i].data());
+    new_ent.set_term(0)
+    new_ent.set_index(this->raftLog_->commited_ + i + 1);
+    this->raftLog_->entries_.push_back(new_ent);
+  }
+  //Update LastCommitIndex (just use size of log)
+  this->raftLog_->commited_ = this->raftLog_->entries_.size(); 
+  SPDLOG_INFO("leader commit on log index " +
+              std::to_string(this->raftLog_->commited_));
+
+  //
+  return;
+}
+
 void RaftContext::LeaderCommit() {
   std::vector<uint64_t> match;
   match.resize(this->prs_.size());
@@ -1077,17 +1140,28 @@ bool RaftContext::HandleHeartbeat(eraftpb::Message m) {
 }
 
 void RaftContext::AppendEntries_b(std::vector<std::shared_ptr<eraftpb::Block>> blocks) {
+
+  //TODO: Just build new list nodes and extend chain from lHead ??
   SPDLOG_INFO("append blocks size " + std::to_string(blocks.size()));
-  // for (auto block: blocks) {
-  //   block->set_term(this->term_);
-  //   if (entry->entry_type() == eraftpb::EntryConfChange) {
-      
-  //   }
-  // }
+  for (auto block: blocks) {
+    block->set_term(this->term_);
+    if (entry->entry_type() == eraftpb::EntryConfChange) {
+      if (this->pendingConfIndex_ != NONE) {
+        continue;
+      }
+      this->pendingConfIndex_ = 0; // need way to get index of block
+    }
+    // do we push back to cHeads here or make new list node here and reset lHead?
+    this->raftLog_->
+  }
+  this->prs_b[this->id_]->match = 0; // ?
+  this->prs_b[this->id_]->next = this->prs_b[this->id_]->match + 1; // same?
+  this->BcastAppend_b();
+  
+
 }
 
-void RaftContext::AppendEntries(
-    std::vector<std::shared_ptr<eraftpb::Entry> > entries) {
+void RaftContext::AppendEntries(std::vector<std::shared_ptr<eraftpb::Entry> > entries) {
   SPDLOG_INFO("append entries size " + std::to_string(entries.size()));
   uint64_t lastIndex = this->raftLog_->LastIndex();
   uint64_t i = 0;

@@ -125,10 +125,35 @@ class RaftLog {
   std::vector<ListNode*> cHeads_;
 
   // std::list<eraftpb::Block> chain_; // 
-  //APIs
-  ListNode* FindBlock(eraftpb::Block block);
+
+  //Return pointer to ListNode storing the block
+  // nullptr if not found
+  ListNode* FindBlock(eraftpb::Block block ) {
+    for (int i = 0; i < this->cHeads_.size(); i++){
+      auto node_ptr = FindBlockFrom(block, this->cHeads_[i]);
+      if (node_ptr != nullptr){
+        return node_ptr;
+      }
+    }
+    return nullptr;
+  }
+  //TODO Chain_to_log?
+
+  //Return pointer to ListNode storing the block
+  // nullptr if not found
+  ListNode* FindBlockFrom(eraftpb::Block block, ListNode* head) {
+    while (!isSameBlock(head->block, block) || isSameBlock(head->block, self.genesis){
+      if (isSameBlock(head->block, self.genesis)) { return nullptr;}
+      head = head->next;
+    }
+    return head;
+  }
+
   ListNode* WalkBackN(ListNode* head, int n);
   void RemoveSideChains();
+  bool isSameBlock(static eraftpb::Block& block1, static eraft::Block& block2){
+    return (block1.data() == block2.data() && block1.uid() == block2.uid() && block1.entry_type() == block2.entry_type());
+  }
 
   ListNode* lHead;
   uint64_t lastAppendedTerm;

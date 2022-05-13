@@ -63,6 +63,7 @@ RaftLog::RaftLog(std::shared_ptr<StorageInterface> st) {
   this->applied_ = lo - 1;
   this->stabled_ = hi;
   this->firstIndex_ = lo;
+
   eraftpb::Block genesis;
   genesis.set_data(NULL);
   genesis.set_entry_type(eraftpb::EntryNormal);
@@ -161,6 +162,7 @@ std::pair<uint64_t, bool> RaftLog::Term(uint64_t i) {
   }
   return std::make_pair<uint64_t, bool>(static_cast<uint64_t>(term_), true);
 }
+
 
 ListNode* RaftLog::FindBlock(eraftpb::Block block) {
   for (int i = 0; i < this->cHeads_.size(); i++) {

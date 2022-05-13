@@ -184,7 +184,6 @@ class RaftContext : StateMachine {
   // sendAppend sends an append RPC with new entries (if any) and the
   // current commit index to the given peer. Returns true if a message was sent.
   bool SendAppend(uint64_t to);
-  bool SendAppend_b(uint64_t to);
 
   // tick advances the internal logical clock by a single tick.
   void Tick();
@@ -304,21 +303,34 @@ class RaftContext : StateMachine {
   uint64_t leadTransferee_;
 
   uint64_t pendingConfIndex_;
-
+  // DONE
   bool HandleRequestVote_b(eraftpb::Message m);
-
+  // DONE
+  bool SendAppend_b(uint64_t to);
+  // DONE
   bool HandleRequestVoteResponse_b(eraftpb::Message m);
   bool DoElection_b();
+  // DONE
   void BcastAppend_b();
+  // DONE
   bool HandleRequestVote_b(eraftpb::BlockMessage m);
+  // DONE
   bool HandleRequestVoteResponse_b(eraftpb::BlockMessage m);
+  // DONE
   bool HandleAppendEntries_b(eraftpb::BlockMessage m);
+  // DONE
   bool HandleAppendEntriesResponse_b(eraftpb::BlockMessage m);
-  void AppendEntries_b(std::vector<std::shared_ptr<eraftpb::Block>> blocks);
-  void SendAppendResponse_b(uint64_t to, bool reject);
+  
+  // DONE
   void SendRequestVote_b(uint64_t to, uint64_t term);
-  void LeaderCommit_b();
+  
+  // DONE
   void BecomeLeader_b();
+
+  void AppendEntries_b(std::vector<std::shared_ptr<eraftpb::Block>> blocks);
+  // DONE
+  void SendAppendResponse_b(uint64_t to, bool reject);
+  void LeaderCommit_b();
 };
 
 }  // namespace eraft
