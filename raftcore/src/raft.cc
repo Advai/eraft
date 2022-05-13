@@ -1155,7 +1155,10 @@ void RaftContext::AppendEntries_b(std::vector<std::shared_ptr<eraftpb::Block>> b
     this->raftLog_->
   }
   this->prs_b[this->id_]->match = 0; // ?
-  this->prs_b[this->id_]->next = this->prs_b[this->id_]->match + 1; // same?
+  this->prs_b[this->id_]->next =  0; // same?
+  //update offsets, match and next for each peer
+
+
   this->BcastAppend_b();
   
 
