@@ -75,8 +75,9 @@ class StateMachine {
   // Step the entrance of handle message, see `MessageType`
   // on `eraftpb.proto` for what msgs should be handled
   virtual bool Step(eraftpb::Message m) = 0;
-
+  virtual bool StepB(eraftpb::BlockMessage m) = 0;
   virtual std::vector<eraftpb::Message> ReadMessage() = 0;
+  virtual std::vector<eraftpb::BlockMessage> ReadMessageB() = 0;
 };
 
 struct Config {
@@ -169,24 +170,31 @@ class RaftContext : StateMachine {
   // Step the entrance of handle message, see `MessageType`
   // on `eraftpb.proto` for what msgs should be handled
   bool Step(eraftpb::Message m);
+  bool StepB(eraftpb::BlockMessage m);
 
   // becomeCandidate transform this peer's state to candidate
   void BecomeCandidate();
+  //void BecomeCandidate_b();
 
   // becomeLeader transform this peer's state to leader
   void BecomeLeader();
+  void BecomeLeader_b();
 
   // becomeFollower transform this peer's state to Follower
   void BecomeFollower(uint64_t term, uint64_t lead);
+  //void BecomeFollower_b(uint64_t term, uint64_t lead);
 
   std::vector<eraftpb::Message> ReadMessage();
+  std::vector<eraftpb::BlockMessage> ReadMessageB();
 
   // sendAppend sends an append RPC with new entries (if any) and the
   // current commit index to the given peer. Returns true if a message was sent.
   bool SendAppend(uint64_t to);
+  bool SendAppend_b(uint64_t to);
 
   // tick advances the internal logical clock by a single tick.
   void Tick();
+  void TickB();
 
   std::map<uint64_t, std::shared_ptr<Progress> > prs_;
   std::map<uint64_t, std::shared_ptr<Progress> > prs_b;
@@ -279,6 +287,7 @@ class RaftContext : StateMachine {
 
   // removeNode remove a node from raft group
   void RemoveNode(uint64_t id);
+  void RemoveNodeB(uint64_t id);
 
   size_t hash_combine(size_t lhs, size_t rhs);
 
@@ -303,12 +312,37 @@ class RaftContext : StateMachine {
   uint64_t leadTransferee_;
 
   uint64_t pendingConfIndex_;
+
+  //Chained..OVERHEAD Added (CAN fix with macro.. not that important)
+
+  void TickElectionB();
+
+  void TickHeartbeatB();
+
+  void SendSnapshot_b(uint64_t to);
+  void SendTimeoutNow_b(uint64_t to);
+
+  //bool StepB(eraftpb::BlockMessage m);
+
+  void StepFollowerB(eraftpb::Message m);
+
+  void StepCandidateB(eraftpb::Message m);
+
+  void StepLeaderB(eraftpb::Message m);
+
+  // sendHeartbeat sends a heartbeat RPC to the given peer.
+  void SendHeartbeat_b(uint64_t to);
+
+  void SendHeartbeatResponse_b(uint64_t to, bool reject);
+
   // DONE
   bool HandleRequestVote_b(eraftpb::Message m);
   // DONE
-  bool SendAppend_b(uint64_t to);
+  void SendAppend_b(uint64_t to);
   // DONE
   bool HandleRequestVoteResponse_b(eraftpb::Message m);
+  void SendRequestVoteResponse_b(uint64_t to, bool reject)
+
   bool DoElection_b();
   // DONE
   void BcastAppend_b();
@@ -320,17 +354,22 @@ class RaftContext : StateMachine {
   bool HandleAppendEntries_b(eraftpb::BlockMessage m);
   // DONE
   bool HandleAppendEntriesResponse_b(eraftpb::BlockMessage m);
-  
   // DONE
   void SendRequestVote_b(uint64_t to, uint64_t term);
-  
   // DONE
   void BecomeLeader_b();
-
+  //DONE
   void AppendEntries_b(std::vector<std::shared_ptr<eraftpb::Block>> blocks);
-  // DONE
+  //DONE
   void SendAppendResponse_b(uint64_t to, bool reject);
+  //DONE
   void LeaderCommit_b();
+
+  //TODO: IN PROGRESS
+  void HandleTransferLeader_b();
+  void HandleSnapshot_b();
+  //void SendSnapshot_b(uint64_t to);
+  //void SendTimeoutNow_b(uint64_t to);
 };
 
 }  // namespace eraft

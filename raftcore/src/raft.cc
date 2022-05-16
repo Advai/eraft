@@ -134,19 +134,33 @@ void RaftContext::SendSnapshot(uint64_t to) {
   this->msgs_.push_back(msg);
 }
 
+void RaftContext::SendSnapshot_b(uint64_t to) {
+  SPDLOG_INFO("send snap to " + std::to_string(to));
+  eraftpb::Snapshot* snapshot = new eraftpb::Snapshot();
+  auto snap_ = this->raftLog_->storage_->Snapshot();
+  snapshot->mutable_metadata()->set_index(snap_.metadata().index());
+  snapshot->mutable_metadata()->set_term(snap_.metadata().term());
+  eraftpb::BlockMessage msg;
+  msg.set_msg_type(eraftpb::MsgSnapshot);
+  msg.set_from(this->id_);
+  msg.set_to(to);
+  msg.set_term(this->term_);
+  //this->prs_[to]->next = snapshot->metadata().index() + 1;
+  msg.set_allocated_snapshot(snapshot);
+  this->msgs_b.push_back(msg);
+}
+
 // DONE
 bool RaftContext::SendAppend_b(uint64_t to) {
-  
-  eraft::ListNode* curr = this->raftLog_->lHead;
+  std::shared_ptr<eraft::ListNode> curr = this->raftLog_->lHead;
   std::vector<eraftpb::Block> blockList;
   for (int i = 0; i < this->prs_b[to]->next; i++) {
-    blockList.push_back(curr->block); //list of length prs_b[to]->next size.. (offset to send node i)
+    blockList.push_back(curr->block); //list of length prs_b[to]->next size.. (offset to send node i) TODO: Speedup?
     curr = curr->next;
   }
-  //Block currBlock = curr->block;
-  eraftpb::Block prevBlock = (curr->next)->block;
 
-  if (blockList.size() > 0) {
+  eraftpb::Block prevBlock = (curr->next)->block; //Do we even need this?
+  if (blockList.size() > 0) { //Wat to do if no blocks to send?
     eraftpb::BlockMessage msg;
     msg.set_msg_type(eraftpb::MsgAppend);
     msg.set_from(this->id_);
@@ -244,14 +258,14 @@ void RaftContext::SendAppendResponse_b(uint64_t to, bool reject) {
   msg.set_term(this->term_);
   msg.set_reject(reject);
 
-  // SPDLOG_INFO("send append response to -> " + std::to_string(to) +
-              // " reject -> " + BoolToString(reject) + " term -> " +
-              // std::to_string(this->term_);
+  SPDLOG_INFO("send append response to -> " + std::to_string(to) +
+              " reject -> " + BoolToString(reject) + " term -> " +
+               std::to_string(this->term_);
 
   this->msgs_b.push_back(msg);
-
 }
 
+//TODO ALL for block? Nothing really changes but the way we pipe in the commands
 void RaftContext::SendAppendResponse(uint64_t to, bool reject, uint64_t term,
                                      uint64_t index) {
   eraftpb::Message msg;
@@ -281,6 +295,18 @@ void RaftContext::SendHeartbeat(uint64_t to) {
   this->msgs_.push_back(msg);
 }
 
+void RaftContext::SendHeartbeat_b(uint64_t to) {
+  SPDLOG_INFO("send heartbeat to -> " + std::to_string(to));
+
+  eraftpb::BlockMessage msg;
+  msg.set_msg_type(eraftpb::MsgHeartbeat);
+  msg.set_from(this->id_);
+  msg.set_to(to);
+  msg.set_term(this->term_);
+  this->msgs_b.push_back(msg);
+}
+
+
 void RaftContext::SendHeartbeatResponse(uint64_t to, bool reject) {
   SPDLOG_INFO("send heartbeat response to -> " + std::to_string(to) +
               " reject -> " + BoolToString(reject));
@@ -293,11 +319,20 @@ void RaftContext::SendHeartbeatResponse(uint64_t to, bool reject) {
   this->msgs_.push_back(msg);
 }
 
+void RaftContext::SendHeartbeatResponse_b(uint64_t to, bool reject) {
+  SPDLOG_INFO("send heartbeat response to -> " + std::to_string(to) +
+              " reject -> " + BoolToString(reject));
+  eraftpb::BlockMessage msg;
+  msg.set_msg_type(eraftpb::MsgHeartbeatResponse);
+  msg.set_from(this->id_);
+  msg.set_to(to);
+  msg.set_term(this->term_);
+  msg.set_reject(reject);
+  this->msgs_b.push_back(msg);
+}
+
 // DONE
 void RaftContext::SendRequestVote_b(uint64_t to, uint64_t term) {
-  SPDLOG_INFO("send request vote to -> " + std::to_string(to) + " index -> "
-      + " term -> " + std::to_string(term));
-
   eraftpb::BlockMessage msg;
   msg.set_msg_type(eraftpb::MsgRequestVote);
   msg.set_from(this->id_);
@@ -305,6 +340,9 @@ void RaftContext::SendRequestVote_b(uint64_t to, uint64_t term) {
   msg.set_term(this->term_);
   msg.set_last_term(term);
   msg.set_allocated_prev_block(&this->raftLog_->lHead->block);
+  SPDLOG_INFO("send request vote to -> " + std::to_string(to) + " index -> "
+      + " term -> " + std::to_string(term));
+
   this->msgs_b.push_back(msg);
 }
 
@@ -335,6 +373,19 @@ void RaftContext::SendRequestVoteResponse(uint64_t to, bool reject) {
   this->msgs_.push_back(msg);
 }
 
+void RaftContext::SendRequestVoteResponse_b(uint64_t to, bool reject) {
+  SPDLOG_INFO("send request vote response to -> " + std::to_string(to) +
+              " reject -> " + BoolToString(reject));
+
+  eraftpb::BlockMessage msg;
+  msg.set_msg_type(eraftpb::MsgRequestVoteResponse);
+  msg.set_from(this->id_);
+  msg.set_to(to);
+  msg.set_term(this->term_);
+  msg.set_reject(reject);
+  this->msgs_b.push_back(msg);
+}
+
 void RaftContext::SendTimeoutNow(uint64_t to) {
   SPDLOG_INFO("timeout now send to -> " + std::to_string(to));
 
@@ -343,6 +394,15 @@ void RaftContext::SendTimeoutNow(uint64_t to) {
   msg.set_from(this->id_);
   msg.set_to(to);
   this->msgs_.push_back(msg);
+}
+
+void RaftContext::SendTimeoutNow_b(uint64_t to) {
+  SPDLOG_INFO("timeout now send to -> " + std::to_string(to));
+  eraftpb::BlockMessage msg;
+  msg.set_msg_type(eraftpb::MsgTimeoutNow);
+  msg.set_from(this->id_);
+  msg.set_to(to);
+  this->msgs_b.push_back(msg);
 }
 
 void RaftContext::Tick() {
@@ -365,6 +425,38 @@ void RaftContext::Tick() {
   }
 }
 
+void RaftContext::TickB() {
+  switch (this->state_) {
+    case NodeState::StateFollower: {
+      this->TickElectionB();
+      break;
+    }
+    case NodeState::StateCandidate: {
+      this->TickElectionB();
+      break;
+    }
+    case NodeState::StateLeader: {
+      if (this->leadTransferee_ != NONE) {
+        this->TickTransfer();
+      }
+      this->TickHeartbeatB();
+      break;
+    }
+  }
+}
+
+void RaftContext::TickElectionB() {
+  this->electionElapsed_++;
+  if (this->electionElapsed_ >=
+      this->randomElectionTimeout_) {  // election timeout
+    SPDLOG_INFO("election timeout");
+    this->electionElapsed_ = 0;
+    eraftpb::BlockMessage msg;
+    msg.set_msg_type(eraftpb::MsgHup);
+    this->StepB(msg);
+  }
+}
+
 void RaftContext::TickElection() {
   this->electionElapsed_++;
   if (this->electionElapsed_ >=
@@ -375,6 +467,17 @@ void RaftContext::TickElection() {
     eraftpb::Message msg;
     msg.set_msg_type(eraftpb::MsgHup);
     this->Step(msg);
+  }
+}
+
+void RaftContext::TickHeartbeatB() {
+  this->heartbeatElapsed_++;
+  if (this->heartbeatElapsed_ >= this->heartbeatTimeout_) {
+    SPDLOG_INFO("heartbeat timeout");
+    this->heartbeatElapsed_ = 0;
+    eraftpb::BlockMessage msg;
+    msg.set_msg_type(eraftpb::MsgBeat);
+    this->StepB(msg);
   }
 }
 
@@ -411,7 +514,7 @@ void RaftContext::BecomeCandidate() {
   this->term_++;
   this->vote_ = this->id_;
   this->votes_ = std::map<uint64_t, bool>{};
-  this->votes_[this->id_] = true;  // vote for self
+  this->votes_[this->id_] = true;
   SPDLOG_INFO("node become candidate at term " + std::to_string(this->term_));
 }
 
@@ -430,23 +533,16 @@ void RaftContext::BecomeLeader_b() {
       this->prs_b[peer.first]->next = 0;
     }
   }
-
+  //Create dummy entry to start heartbeating with
   eraftpb::Block blk;
   blk.set_entry_type(eraftpb::EntryNormal);
-  blk.set_uid(0);
+  blk.set_uid(0); //TODO Generate id
   blk.set_data("");
-  //TODO: Just add ListNode constructor..
-  //ListNode* newNode(blk, this->raftLog_->lHead);
-  eraft::ListNode* newNode;
+  std::shared_ptr<eraft::ListNode> newNode;
   newNode->block = blk;
   newNode->next = this->raftLog_->lHead;
   this->raftLog_->lHead = newNode;
   this->BcastAppend_b();
-
-  //if (this->prs_b.size() == 1) {
-    //Todo.. if we are the only peer.. can just make commitMarker our head (n/2 exactly has persisited the data.. (??)
-    //this->raftLog_->commitMarker = newNode;
-  //} 
   SPDLOG_INFO("node become leader (block) at term " + std::to_string(this->term_));
 }
 
@@ -502,6 +598,35 @@ bool RaftContext::Step(eraftpb::Message m) {
   return true;
 }
 
+bool RaftContext::StepB(eraftpb::BlockMessage m) {
+  if (this->prs_.find(this->id_) == this->prs_.end() &&
+      m.msg_type() == eraftpb::MsgTimeoutNow) {
+    return false;
+  }
+  if (m.term() > this->term_) {
+    this->leadTransferee_ = NONE;
+    //Block specific?
+    this->BecomeFollower(m.term(), NONE);
+  }
+
+  switch (this->state_) {
+    case NodeState::StateFollower: {
+      this->StepFollowerB(m);
+      break;
+    }
+    case NodeState::StateCandidate: {
+      this->StepCandidateB(m);
+      break;
+    }
+    case NodeState::StateLeader: {
+      this->StepLeaderB(m);
+      break;
+    }
+  }
+  return true;
+}
+
+
 // when follower received message, what to do?
 void RaftContext::StepFollower(eraftpb::Message m) {
   switch (m.msg_type()) {
@@ -554,10 +679,61 @@ void RaftContext::StepFollower(eraftpb::Message m) {
   }
 }
 
-void RaftContext::StepCandidate(eraftpb::Message m) {
+void RaftContext::StepFollowerB(eraftpb::BlockMessage m) {
   switch (m.msg_type()) {
     case eraftpb::MsgHup: {
-      this->DoElection();
+      this->DoElection_b();
+      break;
+    }
+    case eraftpb::MsgBeat:
+      break;
+    case eraftpb::MsgPropose:
+      break;
+    case eraftpb::MsgAppend: {
+      this->HandleAppendEntries_b(m);
+      break;
+    }
+    case eraftpb::MsgAppendResponse: {
+      break;
+    }
+    case eraftpb::MsgRequestVote: {
+      this->HandleRequestVote_b(m);
+      break;
+    }
+    case eraftpb::MsgRequestVoteResponse:
+      break;
+    case eraftpb::MsgSnapshot: {
+      this->HandleSnapshot_b(m); //not sure
+      break;
+    }
+    case eraftpb::MsgHeartbeat: {
+      this->HandleHeartbeat_b(m);
+      break;
+    }
+    case eraftpb::MsgHeartbeatResponse:
+      break;
+    case eraftpb::MsgTransferLeader: {
+      if (this->lead_ != NONE) {
+        m.set_to(this->lead_);
+        this->msgs_b.push_back(m);
+      }
+      break;
+    }
+    case eraftpb::MsgTimeoutNow: {
+      this->DoElection_b();
+      break;
+    }
+    case eraftpb::MsgEntryConfChange: {
+      this->msgs_b.push_back(m);
+      break;
+    }
+  }
+}
+
+void RaftContext::StepCandidateB(eraftpb::BlockMessage m) {
+  switch (m.msg_type()) {
+    case eraftpb::MsgHup: {
+      this->DoElection_b();
       break;
     }
     case eraftpb::MsgBeat:
@@ -566,45 +742,47 @@ void RaftContext::StepCandidate(eraftpb::Message m) {
       break;
     case eraftpb::MsgAppend: {
       if (m.term() == this->term_) {
-        this->BecomeFollower(m.term(), m.from());
+        this->BecomeFollower_b(m.term(), m.from());
       }
-      this->HandleAppendEntries(m);
+      this->HandleAppendEntries_b(m);
       break;
     }
     case eraftpb::MsgAppendResponse:
       break;
     case eraftpb::MsgRequestVote: {
-      this->HandleRequestVote(m);
+      this->HandleRequestVote_b(m);
       break;
     }
     case eraftpb::MsgRequestVoteResponse: {
-      this->HandleRequestVoteResponse(m);
+      this->HandleRequestVoteResponse_b(m);
       break;
     }
     case eraftpb::MsgSnapshot: {
-      this->HandleSnapshot(m);
+      //make entries message??
+      this->HandleSnapshot_b(m);
       break;
     }
     case eraftpb::MsgHeartbeat: {
       if (m.term() == this->term_) {
-        this->BecomeFollower(m.term(), m.from());
+        this->BecomeFollower(m.term(), m.from()); //_b?
       }
-      this->HandleHeartbeat(m);
+      this->HandleHeartbeat_b(m);
       break;
     }
     case eraftpb::MsgHeartbeatResponse:
       break;
+
     case eraftpb::MsgTransferLeader: {
       if (this->lead_ != NONE) {
         m.set_to(this->lead_);
-        this->msgs_.push_back(m);
+        this->msgs_b.push_back(m);
       }
       break;
     }
     case eraftpb::MsgTimeoutNow:
       break;
     case eraftpb::MsgEntryConfChange: {
-      this->msgs_.push_back(m);
+      this->msgs_b.push_back(m);
       break;
     }
   }
@@ -664,6 +842,62 @@ void RaftContext::StepLeader(eraftpb::Message m) {
   }
 }
 
+void RaftContext::StepLeaderB(eraftpb::BlockMessage m) {
+  switch (m.msg_type()) {
+    case eraftpb::MsgHup:
+      break;
+    case eraftpb::MsgBeat: {
+      this->BcastHeartbeat_b();
+      break;
+    }
+    case eraftpb::MsgPropose: {
+      if (this->leadTransferee_ == NONE) {
+        std::vector<std::shared_ptr<eraftpb::Block>> entries;
+        for (auto ent : m.entries()) {
+          auto e = std::make_shared<eraftpb::Block>(ent);
+          entries.push_back(e);
+        }
+        this->AppendEntries_b(entries);
+      }
+      break;
+    }
+    case eraftpb::MsgAppend: {
+      this->HandleAppendEntries_b(m);
+      break;
+    }
+    case eraftpb::MsgAppendResponse: {
+      this->HandleAppendEntriesResponse_b(m);
+      break;
+    }
+    case eraftpb::MsgRequestVote: {
+      this->HandleRequestVote_b(m);
+      break;
+    }
+    case eraftpb::MsgRequestVoteResponse:
+      break;
+    case eraftpb::MsgSnapshot: {
+      this->HandleSnapshot_b(m); //not sure
+      break;
+    }
+    case eraftpb::MsgHeartbeat: {
+      this->HandleHeartbeat_b(m);
+      break;
+    }
+    case eraftpb::MsgHeartbeatResponse: {
+      this->SendAppend_b(m.from());
+      break;
+    }
+    case eraftpb::MsgTransferLeader: {
+      this->HandleTransferLeader_b(m);
+      break;
+    }
+    case eraftpb::MsgTimeoutNow:
+      break;
+  }
+}
+
+
+
 bool RaftContext::DoElection_b() {
   SPDLOG_INFO("node start do election (block)");
   this->BecomeCandidate();
@@ -674,7 +908,6 @@ bool RaftContext::DoElection_b() {
     this->BecomeLeader();
     return true;
   }
-
   //Send each peer last log term and head block..
   uint64_t lastLogTerm = this->raftLog_->lastAppendedTerm;
   for (auto peer : this->prs_) {
@@ -744,48 +977,41 @@ bool RaftContext::HandleRequestVote_b(eraftpb::BlockMessage m) {
   SPDLOG_INFO("handle request vote (block) from " + std::to_string(m.from()));
   // reject if message term not set or less than curr term
   if (m.term() != NONE && m.term() < this->term_) {
-    this->SendRequestVoteResponse(m.from(), true);
+    this->SendRequestVoteResponse_b(m.from(), true);
     return true;
   }
   // reject if voted already
   if (this->vote_ != NONE && this->vote_ != m.from()) {
-    this->SendRequestVoteResponse(m.from(), true);
+    this->SendRequestVoteResponse_b(m.from(), true);
     return true;
   }
-  // m.index() = last appended term of candidate here
-  // reject if follower has greater last appended term
-  if (m.last_term() > this->raftLog_->lastAppendedTerm) {
-    this->SendRequestVoteResponse(m.from(), true);
+
+  // reject if follower has lower last appended term
+  if (this->raftLog_->lastAppendedTerm > m.last_term()) {
+    this->SendRequestVoteResponse_b(m.from(), true);
     return true;
   }
-  // reject if candidate not up to date
+
+  // case we both match last term:
   bool candidateUptoDate = false;
   if (m.last_term() == this->raftLog_->lastAppendedTerm) {
-    ListNode* followerCurr = this->raftLog_->WalkBackN(this->raftLog_->lHead, this->prs_b[m.to()]->next);
-    ListNode* candidateCurr = this->raftLog_->WalkBackN(this->raftLog_->lHead, this->prs_b[m.from()]->next);
-    if (followerCurr->block == candidateCurr->block) {
-      // candidate and follower heads are same
+    //If I dont have their head block, they are more up to date.. (we got our blocks from the same leader) //Could lead to wacky bugs..
+    if (this->raftLog->FindBlock(m.block()) == nullptr) {
       candidateUptoDate = true;
-    } else {
-      // candidate's head extends follower's head
-      while (candidateCurr != nullptr) {
-        if candidateCurr->block == followerCurr->block) {
-          candidateUptoDate = true;
-          break;
-        } 
-        candidateCurr = candidateCurr->next;
-      }
-    }
+    } 
+  } else { //Their last term is strictly greater than mine.. give them permission
+    candidateUptoDate = true;
   }
+
   if (!candidateUptoDate) {
-    this->SendRequestVoteResponse(m.from(), true);
+    this->SendRequestVoteResponse_b(m.from(), true); //reject
     return true;
   }
   this->vote_ = m.from();
   this->electionElapsed_ = 0;
   this->randomElectionTimeout_ =
       this->electionTimeout_ + RandIntn(this->electionTimeout_);
-  this->SendRequestVoteResponse(m.from(), false);
+  this->SendRequestVoteResponse_b(m.from(), false);
 }
 
 bool RaftContext::HandleRequestVote(eraftpb::Message m) {
@@ -820,15 +1046,15 @@ bool RaftContext::HandleRequestVote(eraftpb::Message m) {
 bool RaftContext::HandleRequestVoteResponse_b(eraftpb::BlockMessage m) {
   SPDLOG_INFO("handle request vote response from peer " +
               std::to_string(m.from()));
-  if (m.term() != NONE && m.term() < this->term_) {
-    this->SendRequestVoteResponse(m.from(), true);
+  if (m.term() != NONE && m.term() < this->term_) { // reject stale message
+    this->SendRequestVoteResponse_b(m.from(), true);
     return false;
   }
 
   this->votes_[m.from()] = !m.reject();
   uint8_t grant = 0;
   uint8_t votes = this->votes_.size();
-  uint8_t threshold = this->prs_.size() / 2;
+  uint8_t threshold = this->prs_.size()/2 +1;
   for (auto vote : this->votes_) {
     if (vote.second) {
       grant++;
@@ -838,6 +1064,7 @@ bool RaftContext::HandleRequestVoteResponse_b(eraftpb::BlockMessage m) {
     this->BecomeLeader_b();
   } else if (votes - grant > threshold) {
     this->BecomeFollower(this->term_, NONE);
+    //Potentially need to use block version..
   }
 }
 
@@ -866,61 +1093,79 @@ bool RaftContext::HandleRequestVoteResponse(eraftpb::Message m) {
 // DONE
 bool RaftContext::HandleAppendEntries_b(eraftpb::BlockMessage m) {
   
-  // SPDLOG_INFO("handle append entries (block) " + MessageToString(m));
+  SPDLOG_INFO("handle append entries (block) " + MessageToString(m));
   if (m.term() != NONE && m.term() < this->term_) {
     this->SendAppendResponse_b(m.from(), true);
     return false;
   }
-  
   this->electionElapsed_ = 0;
   this->randomElectionTimeout_ = this->electionTimeout_ + RandIntn(this->electionTimeout_);
   this->lead_ = m.from();
 
-  ListNode* prev = this->raftLog_->FindBlock(m.prev_block());
-  if (prev == nullptr) {
+  std::shared_ptr<eraft::ListNode> prev = this->raftLog_->FindBlock(m.prev_block()); //check for prev block on our local chains
+  if (prev == nullptr) { //not found
     this->SendAppendResponse_b(m.from(), true);
     return false;
+  } else {
+    //Add to our chain.. where prev_block is now the tail of the sub-chain..
+    std::shared_ptr<eraft::ListNode> tail;
+    auto new_tail = this->raftLog_->hTails_.find(prev); //get the tail of prev if exists
+    if (new_tail == this->raftLog_->hTails_.end()) {
+      tail = prev;
+    } else {
+      tail = new_tail->second;
+      hTails_.erase(prev); //remove entries with prev head as key
+    }
+
+    std::shared_ptr<eraft::ListNode> head = tail; //Now update head.
+    for (auto block : m.blocks()) {
+      //TODO: One place where we would need to track ids of blocks we've seen and not yet persisted.
+      std::shared_ptr<ListNode> newLink;
+      newLink->next = prev;
+      newLink->block = block;
+      this->raftLog_->lHead = newLink;
+      prev = newLink;
+    }
+    //Update hTails Map
+    this->raftLog_->hTails_[this->raftLog_->lHead] = tail;
   }
-  for (auto block : m.blocks()) {
-    ListNode* newnode = new ListNode();
-    newnode->next = prev;
-    newnode->block = block;
-    this->raftLog_->lHead = newnode;
-    prev = newnode;
-  }
-  
-  if (!this->raftLog_->isSameBlock(m.commit(), this->raftLog_->commitMarker->block) {
-    //Update CommitMarker -> find offset
-    ListNode* temp = this->raftLog_->lHead;
-    int offset = 0;
+
+  //Update CommitMarker whenever I accept a chain..
+  if (!this->raftLog_->isSameBlock(m.commit(), this->raftLog_->commited_marker->block)) {
+    std::shared_ptr<ListNode> temp = this->raftLog_->lHead;
+    int offset = 0; //from my head
+
     while (!this->raftLog_->isSameBlock(temp->block, m.commit())){
       offset++;
       temp = temp->next;
     }
-    //Offset = How many blocks back head->commit
-    std::vector<eraftpb::Block> blockvect;
+    std::shared_ptr<ListNode> new_commit_marker = temp; //TODO Remove all above and just call find block??
+    std::vector<eraftpb::Block> chain; //chain between old commit marker and new (temp)
 
-    while(!this->raftLog_->isSameBlock(temp->block, this->raftLog_->comimitMarker->block)){
-      blockvect.push_back(temp->block);
+    while(!this->raftLog_->isSameBlock(temp->block, this->raftLog_->commited_marker->block)){
+      chain.push_back(temp->block);
       temp = temp->next;
     }
-    std::reverse(blockvect.begin(), block.end())
-    //Persist chain to log using blockVect
-    for (int i = 0; i < blockvect.size(); ++i){
+
+    std::reverse(chain.begin(), chain.end());
+    for (int i = 0; i < chain.size(); ++i){
+      //translate to entries
       eraftpb::Entry new_ent;
-      new_ent.set_entry_type(blockvect[i].entry_type());
-      new_ent.set_data(blockvect[i].data());
+      new_ent.set_entry_type(chain[i].entry_type());
+      new_ent.set_data(chain[i].data());
       new_ent.set_term(0)
       new_ent.set_index(this->raftLog_->commited_ + i + 1);
       this->raftLog_->entries_.push_back(new_ent);
     }
-    //Update LastCommitIndex (just use size of log)
-    this->raftLog_->commited_ = this->raftLog_->entries_.size(); //Todo?? -1 
+    this->raftLog_->commited_ = this->raftLog_->entries_.size() - 1;
+    this->raftLog_->commited_marker = new_commit_marker;
+    this->raftLog_->CommitGarbageCollect(chain.size());
+
   }
   this->raftLog_->lastAppendedTerm = this->term_;
   this->SendAppendResponse_b(m.from(), false);
   return true;
-  }
+}
 
 bool RaftContext::HandleAppendEntries(eraftpb::Message m) {
   SPDLOG_INFO("handle append entries " + MessageToString(m));
@@ -998,24 +1243,23 @@ bool RaftContext::HandleAppendEntries(eraftpb::Message m) {
 
 // DONE
 bool RaftContext::HandleAppendEntriesResponse_b(eraftpb::BlockMessage m) {
-  // DONE
+  // Make sure client is sending term for safety
   SPDLOG_INFO("handle append entries (block) response from" + std::to_string(m.from()));
   if (m.term() != NONE && m.term() < this->term_) {
     return false;
   }
-  
   if (m.reject()) {
-    //Message was rejected.. 
     this->prs_[m.from()]->next++; //increment next to send the next block..
-    this->SendAppend(m.from());  
+    this->SendAppend_b(m.from());  
     return false;
   }
   //message was accepted..
-  this->prs_[m.from()]->next = 0; //update nextoffset to 0
-  this->prs_[m.from()]->match = 0; //Matches up to our head..
-  this->LeaderCommit_b(); //TODO: update LeaderCommit to use blocks..
+  this->prs_[m.from()]->next = 0; //update nextoffset to 0 (not exactly right if we have added to our head since..)
+  this->prs_[m.from()]->match = 0; //Matches up to our head.. (faulty as explained above)
+  //TODO: Ensure at this point we have up to date match and next offsets for everyone..
+  this->LeaderCommit_b(); 
   if (m.from() == this->leadTransferee_ && m.term() == this->raftLog_->lastAppendedTerm) {
-    this->SendTimeoutNow(m.from()); 
+    this->SendTimeoutNow_b(m.from()); 
     this->leadTransferee_ = NONE;
   }
   return true;
@@ -1061,45 +1305,48 @@ bool RaftContext::HandleAppendEntriesResponse(eraftpb::Message m) {
 }
 
 void RaftContext::LeaderCommit_b() {
-  match.resize(this->prs_b.size());
+  std::vector<uint64_t> matchOff;
+  matchOff.resize(this->prs_b.size());
   uint64_t i = 0;
   for (auto prs : this->prs_b) {
-    match[i] = prs.second->match;
+    matchOff[i] = prs.second->match;
     i++;
   }
-  std::sort(match.begin(), match.end());
-  std::reverse(match.begin(), match.end());
-  uint64_t n = match[(this->prs_b.size() - 1) / 2];
-  auto temp = this->raftLog_->lHead;
-  while (n-- > 0 && !this->raftLog_->isSameBlock(this->raftLog_->commitMarker->block, temp->block)){
+  std::sort(matchOff.begin(), matchOff.end());
+  std::reverse(matchOff.begin(), matchOff.end());
+  std::shared_ptr<eraft::ListNode> temp = this->raftLog_->lHead;
+  uint64_t offset = matchOff[(this->prs_b.size() - 1) / 2]; //Flexible Quorum
+  while (offset > 0) { 
+    if (this->raftLog_->isSameBlock(this->raftLog_->commited_marker->block, temp->block)) {//if same as commitBlock and offset is >0..no update
+      return;
+    }
+    temp = temp->next;
+    offset--;
+  }
+  //Sanity Check(s) needed??
+  //Here: Did not find commit marker walking from head.. meaning new commit_marker extends old
+  std::shared_ptr<eraft::ListNode> new_commit = temp;
+  std::vector<eraftpb::Block> chain;
+  while (!this->raftLog_->isSameBlock(this->raftLog_->commited_marker->block, temp->block)){
+    chain.push_back(temp->block);
     temp = temp->next;
   }
-  if (n > 0){
-    return;
-  }
-  auto new_commit = temp;
-  while (!this->raftLog_->isSameBlock(this->raftLog_->commitMarker->block, temp->block)){
-    blockvect.push_back(temp->block);
-    temp = temp->next;
-  }
-  this->raftLog_->commitMarker = new_commit;
-  //update leaders log
-  std::reverse(blockvect.begin(), block.end())
-  //Persist chain to log using blockVect
-  for (int i = 0; i < blockvect.size(); ++i){
+  //Sanity Assertion?
+  std::reverse(chain.begin(), chain.end());
+  //Persist chain to log
+  for (int i = 0; i < chain.size(); ++i){
     eraftpb::Entry new_ent;
-    new_ent.set_entry_type(blockvect[i].entry_type());
-    new_ent.set_data(blockvect[i].data());
+    new_ent.set_entry_type(chain[i].entry_type());
+    new_ent.set_data(chain[i].data());
     new_ent.set_term(0)
     new_ent.set_index(this->raftLog_->commited_ + i + 1);
     this->raftLog_->entries_.push_back(new_ent);
   }
-  //Update LastCommitIndex (just use size of log)
-  this->raftLog_->commited_ = this->raftLog_->entries_.size(); 
+  //Update LastCommitIndex and commit_marker (just use size of log)
+  this->raftLog_->commited_ = this->raftLog_->entries_.size() - 1; 
+  this->raftLog_->commited_marker = new_commit;
   SPDLOG_INFO("leader commit on log index " +
-              std::to_string(this->raftLog_->commited_));
-
-  //
+              std::to_string(this->raftLog_->commited_) + " chain length:" + std::to_string(chain.size()));
   return;
 }
 
@@ -1139,29 +1386,50 @@ bool RaftContext::HandleHeartbeat(eraftpb::Message m) {
   this->SendHeartbeatResponse(m.from(), false);
 }
 
-void RaftContext::AppendEntries_b(std::vector<std::shared_ptr<eraftpb::Block>> blocks) {
+bool RaftContext::HandleHeartbeat_b(eraftpb::BlockMessage m) {
+  SPDLOG_INFO("raft_context::handle_heart_beat_b");
+  if (m.term() != NONE && m.term() < this->term_) {
+    this->SendHeartbeatResponse_b(m.from(), true);
+    return false;
+  }
+  this->lead_ = m.from();
+  this->electionElapsed_ = 0;
+  this->randomElectionTimeout_ =
+      this->electionTimeout_ + RandIntn(this->electionTimeout_);
+  this->SendHeartbeatResponse(m.from(), false);
+}
 
-  //TODO: Just build new list nodes and extend chain from lHead ??
+void RaftContext::AppendEntries_b(std::vector<std::shared_ptr<eraftpb::Block>> blocks) {
+  //TODO: Check for id??
   SPDLOG_INFO("append blocks size " + std::to_string(blocks.size()));
+  std::shared_ptr<eraft::ListNode> old_head = this->raftLog_->lHead;
+  uint64_t iter = 0;
   for (auto block: blocks) {
+    iter++;
     block->set_term(this->term_);
     if (entry->entry_type() == eraftpb::EntryConfChange) {
-      if (this->pendingConfIndex_ != NONE) {
+      if (this->pendingConfIndex_ != NONE) { //??
         continue;
       }
-      this->pendingConfIndex_ = 0; // need way to get index of block
+      auto offset =  this->raftLog_->HeadtoCommitOffset();
+      this->pendingConfIndex_ = this->raftLog_->commited_ + offset + iter; // TODO: need way to get index of block..(potentially lhead -> commit offeset + committed_)
     }
-    // do we push back to cHeads here or make new list node here and reset lHead?
-    this->raftLog_->
+    //TODO: Have leader tag with ID
+    std::shared_ptr<eraft::ListNode> newLink
+    newLink->block = block;
+    newLink->next = this->raftLog_->lHead;
+    this->raftLog_->lHead = newLink;
   }
-  this->prs_b[this->id_]->match = 0; // ?
-  this->prs_b[this->id_]->next =  0; // same?
-  //update offsets, match and next for each peer
-
-
+  //update state: peer offsets, match and next for each peer
+  for (auto it : this->prs_b) {
+    it.second->match += blocks.size();
+    it.second->next += blocks.size();
+  }
+  this->prs_b[this->id_]->match = 0;
+  this->prs_b[this->id_]->next =  0;
+  this->raftLog_->hTails_.erase(old_head);
+  this->raftLog_->hTails_[this->raftLog_->lHead] = this->raftLog_->commited_marker; //tail is closest node ON THE COMMIT CHAIN
   this->BcastAppend_b();
-  
-
 }
 
 void RaftContext::AppendEntries(std::vector<std::shared_ptr<eraftpb::Entry> > entries) {
@@ -1224,6 +1492,29 @@ bool RaftContext::HandleSnapshot(eraftpb::Message m) {
   this->SendAppendResponse(m.from(), false, NONE, this->raftLog_->LastIndex());
 }
 
+bool RaftContext::HandleSnapshot_b(eraftpb::BlockMessage m) {
+  SPDLOG_INFO("handle snapshot from: " + std::to_string(m.from()));
+  eraftpb::SnapshotMetadata meta = m.snapshot().metadata();
+  if (meta.index() <= this->raftLog_->commited_) {
+    this->SendAppendResponse_b(m.from(), false);
+    return false;
+  }
+  this->BecomeFollower(std::max(this->term_, m.term()), m.from());
+  uint64_t first = meta.index() + 1;
+  if (this->raftLog_->entries_.size() > 0) {
+    this->raftLog_->entries_.clear();
+  }
+  this->raftLog_->firstIndex_ = first;
+  this->raftLog_->applied_ = meta.index();
+  this->raftLog_->commited_ = meta.index();
+  this->raftLog_->stabled_ = meta.index();
+  for (auto peer : meta.conf_state().nodes()) {
+    this->prs_[peer] = std::make_shared<Progress>();
+  }
+  this->raftLog_->pendingSnapshot_ = m.snapshot();
+  this->SendAppendResponse_b(m.from(), false);
+}
+
 bool RaftContext::HandleTransferLeader(eraftpb::Message m) {
   if (m.from() == this->id_) {
     return false;
@@ -1240,6 +1531,25 @@ bool RaftContext::HandleTransferLeader(eraftpb::Message m) {
     this->SendTimeoutNow(m.from());
   } else {
     this->SendAppend(m.from());
+  }
+}
+
+bool RaftContext::HandleTransferLeader_b(eraftpb::BlockMessage m) {
+  if (m.from() == this->id_) {
+    return false;
+  }
+  if (this->leadTransferee_ != NONE && this->leadTransferee_ == m.from()) {
+    return false;
+  }
+  if (this->prs_[m.from()] == nullptr) {
+    return false;
+  }
+  this->leadTransferee_ = m.from();
+  this->transferElapsed_ = 0;
+  if (this->prs_[m.from()]->match == 0) { //maybe wrong??
+    this->SendTimeoutNow_b(m.from()); //not sure if need _b
+  } else {
+    this->SendAppend_b(m.from());
   }
 }
 
@@ -1264,10 +1574,26 @@ void RaftContext::RemoveNode(uint64_t id) {
   this->pendingConfIndex_ = NONE;
 }
 
+void RaftContext::RemoveNodeB(uint64_t id) {
+  SPDLOG_INFO("remove node id " + std::to_string(id));
+  if (this->prs_[id] != nullptr) {
+    this->prs_.erase(id);
+    if (this->state_ == NodeState::StateLeader) {
+      this->LeaderCommit_b();
+    }
+  }
+  this->pendingConfIndex_ = NONE;
+}
+
 std::vector<eraftpb::Message> RaftContext::ReadMessage() {
   std::vector<eraftpb::Message> msgs = this->msgs_;
   this->msgs_.clear();
   return msgs;
 }
 
+std::vector<eraftpb::BlockMessage> RaftContext::ReadMessageB() {
+  std::vector<eraftpb::BlockMessage> msgs = this->msgs_b;
+  this->msgs_b.clear();
+  return msgs;
+}
 }  // namespace eraft

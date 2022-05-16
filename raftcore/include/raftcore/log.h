@@ -56,6 +56,13 @@
 // for simplify the RaftLog implement should manage all log entries
 // that not truncated
 
+// NOTE WITH BLOCKS:
+//  We do not have an active log of any entries pasted committed 
+//  We translate real time from a chain of blocks that extend commitedMaker.
+//  We CAN keep track of last, and perhaps stabled
+//  Need to keep track of first index to allow compaction
+
+
 namespace eraft {
 
 enum class NodeState {
@@ -66,7 +73,7 @@ enum class NodeState {
 
 struct ListNode {
   eraftpb::Block block;
-  ListNode* next;
+  std::shared_ptr<ListNode> next;
 };
 
 class RaftLog {
@@ -116,53 +123,43 @@ class RaftLog {
   uint64_t stabled_;
 
   uint64_t firstIndex_;
-  
 
   // all entries that have not yet compact.
   std::vector<eraftpb::Entry> entries_;
 
-  // std::vector<std::list<eraftpb::Block>> chain_;
-  std::vector<ListNode*> cHeads_;
+  //Additional Chained structures
+  std::shared_ptr<ListNode> lHead;
 
-  // std::list<eraftpb::Block> chain_; // 
+  std::shared_ptr<ListNode> commited_marker;
 
-  //Return pointer to ListNode storing the block
-  // nullptr if not found
-  ListNode* FindBlock(eraftpb::Block block ) {
-    for (int i = 0; i < this->cHeads_.size(); i++){
-      auto node_ptr = FindBlockFrom(block, this->cHeads_[i]);
-      if (node_ptr != nullptr){
-        return node_ptr;
-      }
-    }
-    return nullptr;
-  }
-  //TODO Chain_to_log?
-
-  //Return pointer to ListNode storing the block
-  // nullptr if not found
-  ListNode* FindBlockFrom(eraftpb::Block block, ListNode* head) {
-    while (!isSameBlock(head->block, block) || isSameBlock(head->block, self.genesis){
-      if (isSameBlock(head->block, self.genesis)) { return nullptr;}
-      head = head->next;
-    }
-    return head;
-  }
-
-  ListNode* WalkBackN(ListNode* head, int n);
-  void RemoveSideChains();
-  bool isSameBlock(static eraftpb::Block& block1, static eraft::Block& block2){
-    return (block1.data() == block2.data() && block1.uid() == block2.uid() && block1.entry_type() == block2.entry_type());
-  }
-
-  ListNode* lHead;
   uint64_t lastAppendedTerm;
-  ListNode* commitMarker;
+
+  std::vector<std::shared_ptr<ListNode>> cHeads_;
+
+  std::unordered_map<std::shared_ptr<ListNode>, std::shared_ptr<ListNode>> hTails_; //Todo? Pointer address to head -> tail..
+
+  //Chained Interfaces
+  std::shared_ptr<ListNode> FindBlock(eraftpb::Block block);
+
+  std::shared_ptr<ListNode> FindBlockFrom(eraftpb::Block block, std::shared_ptr<ListNode> head);
+
+  std::shared_ptr<ListNode> WalkBackN(std::shared_ptr<ListNode> head, int n);
+  
+  //Storage interfaces/Utility
+  void FreeChain(std::shared_ptr<ListNode> head, std::shared_ptr<ListNode> tail);
+
+  void CommitGarbageCollect(uint8_t n);
+
+  void TryCompactB(); //might work the same tbh
+
+  bool isSameBlock(static eraftpb::Block& block1, static eraft::Block& block2);
+
+  uint64_t HeadtoCommitOffset();
 
  private:
-  // storage contains all stable entries since the last snapshot.
-  std::shared_ptr<StorageInterface> storage_;  // point to real storage
 
+  // storage contains all stable entries since the last snapshot.
+  std::shared_ptr<StorageInterface> storage_; 
   // the incoming unstable snapshot, if any.
   eraftpb::Snapshot pendingSnapshot_;
 };

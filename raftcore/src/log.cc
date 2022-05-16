@@ -56,8 +56,6 @@ RaftLog::RaftLog(std::shared_ptr<StorageInterface> st) {
   uint64_t lo = st->FirstIndex();
   uint64_t hi = st->LastIndex();
   std::vector<eraftpb::Entry> entries = st->Entries(lo, hi + 1);
-  // std::list<eraftpb::Entry> chain;
-  // std::copy( (entries.begin(), entries.end()), std::back_inserter(chain));
   this->storage_ = st;
   this->entries_ = entries;
   this->applied_ = lo - 1;
@@ -65,18 +63,21 @@ RaftLog::RaftLog(std::shared_ptr<StorageInterface> st) {
   this->firstIndex_ = lo;
 
   eraftpb::Block genesis;
-  genesis.set_data(NULL);
+  genesis.set_data("GENESIS");
   genesis.set_entry_type(eraftpb::EntryNormal);
   genesis.set_uid(0);
   // blk.set_uid(uuids::to_string(uuids::uuid_system_gnerator{}()));
   // init list node and pushback to vec
-  std::vector<ListNode*> vec;
-  eraft::ListNode* newNode;
-  newNode->block = genesis;
-  newNode->next = nullptr;
-  vec.push_back(newNode);
-  this->cHeads_ = vec;
-
+  //std::vector<std::shared_ptr<ListNode>> cHead;
+  std::shared_ptr<ListNode> GenNode;
+  GenNode->block = genesis;
+  GenNode->next = std::shared_ptr<ListNode>{};
+  this->_Genesis = GenNode; 
+  //vec.push_back(GenNode);
+  //this->cHeads_ = vec;
+  this->hTails_[GenNode] = GenNode; //need to start our build
+  this->lHead = GenNode; 
+  this->commited_marker = GenNode;
   SPDLOG_INFO("init raft log with firstIndex " +
               std::to_string(this->firstIndex_) + " applied " +
               std::to_string(this->applied_) + " stabled " +
@@ -163,29 +164,113 @@ std::pair<uint64_t, bool> RaftLog::Term(uint64_t i) {
   return std::make_pair<uint64_t, bool>(static_cast<uint64_t>(term_), true);
 }
 
+/* 
+    Chained Log Interface Implementations:
+    Remove Side Chains (garbage collection)
+    Helper Functions
+    Compare Block abstraction layer
+*/
 
-ListNode* RaftLog::FindBlock(eraftpb::Block block) {
-  for (int i = 0; i < this->cHeads_.size(); i++) {
-    auto it = this->cHeads_[i];
-    // while (!google::protobuf::MessageDifferencer::Equals(it->block, commitMarker->block) || it != NULL) {
-      while (it != NULL) {
-      if (true) {
-        return it;
-      }
-      it = it->next;
-    }
-  }
-  return NULL;
+bool RaftLog::isSameBlock(static eraftpb::Block& block1, static eraft::Block& block2){
+  return ((block1.data() == block2.data()) && (block1.uid() == block2.uid()) && (block1.entry_type() == block2.entry_type()));
 }
+
 void RaftLog::RemoveSideChains() {
   auto block = this->commitMarker->next->block;
 }
 
-ListNode* WalkBackN(ListNode* head, int n) {
+std::shared_ptr<ListNode> RaftLog::WalkBackN(ListNode* head, int n) {
   ListNode* curr = head;
   for (int i = 0; i < n; i++) {
     curr = curr->next;
   }
   return curr;
+}
+
+
+//args: block-> block to find  Return: ListNode of block on success, or nullptr on failure
+std::shared_ptr<ListNode> RaftLog::FindBlock(eraftpb::Block block) {
+  for (auto it : this->hTails_) { //check all side chains..(using map..makes more sense)
+    std::shared_ptr<ListNode> ret = FindBlockFrom(block, this->hTails_[it.first]);
+    if (ret != nullptr){
+      //finegrained log for tracing
+      SPDLOG_INFO("raftlog: found block " + std::to_string(block.uid()) +
+              " from leader");
+      return ret;
+    }
+  }
+  return nullptr;
+  /*
+  for (int i = 0; i < this->cHeads_.size(); i++){
+    auto node_ptr = FindBlockFrom(block, this->cHeads_[i]);
+    if (node_ptr != nullptr){
+      return node_ptr;
+    }
+  }
+  */
+}
+
+//TODO: Find more greedy "Marker" to track how far we need to search from
+std::shared_ptr<ListNode> RaftLog::FindBlockFrom(eraftpb::Block block, std::shared_ptr<ListNode> head) {
+  std::shared_ptr<ListNode> temp = head;
+  while (!isSameBlock(temp->block, block)){
+    if (temp == this->_Genesis || temp->next = nullptr) {
+      return nullptr;
+    }
+    temp = temp->next;
+  }
+  return temp;
+}
+
+uint64_t RaftLog::HeadtoCommitOffset() {
+  std::shared_ptr temp = this->lHead;
+  uint64_t off = 0;
+  while (temp != this->commited_marker) {
+    if (temp == this->Genesis_){
+      SPDLOG_INFO("raftlog: bad lookup when tracing from head to commit marker..");
+      return off;
+    }
+    off++;
+    temp = temp->next;
+  }
+  return off;
+}
+
+//TODO: Not sure where to start. IS this even needed?
+void RaftLog::TryCompactB(){
+  return;
+}
+
+void RaftLog::FreeChain(std::shared_ptr<ListNode> head, std::shared_ptr<ListNode> tail) {
+  while (head->next != tail  || !head->next == nullptr) {
+    std::shared_ptr<ListNode> temp = head;
+    head = head->next;
+    if (this->hTails_.find(temp) != this->hTails_.end()){
+      this->hTails_.remove(temp);
+    }
+    free(temp->block);
+    delete(temp); //should do automatically 
+  }
+}
+
+void RaftLog::CommitGarbageCollect(uint8_t n) {
+  //args n: blocks to garbage collect extending forks
+  uint8_t collected = 0;
+  std::shared_ptr<ListNode> tail = this->commited_marker;
+  for (int i = 0; i < n; ++i) {
+    std::shared_ptr<ListNode> tail = tail->next;
+    for (auto it : this->hTails_) {
+      if (it.second == tail && it.first != this->commited_marker) { //tail is node that directly extends the commit chain
+        collected++; //can garbage collect..delete pointers and update structures
+        this->FreeChain(it.first, it.second);
+        this->hTails_.remove(it.first);
+        //this->bMap[it.first.] -> just do inside free function
+      }
+    }
+  }
+  SPDLOG_INFO("raftlog garbage collect on commit: " + std::to_string(this->commited_) +
+              " l.prev_commit: " + std::to_string(this->commited_ - n) +
+              " l.applied: " + std::to_string(this->applied_) +
+              " collected: " + std::to_string(collected));
 }
 }  // namespace eraft
