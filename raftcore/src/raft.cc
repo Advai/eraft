@@ -65,6 +65,11 @@ bool Config::Validate() {
   return true;
 }
 
+//Helper for leader to get psuedo-random 64bit uint
+uint64_t RaftContex::GenBlockID(){
+  return RandIntn(std::numeric_limits<uint64_t>::max());
+}
+
 size_t RaftContext::hash_combine(size_t lhs, size_t rhs) {
   lhs ^= rhs + 0x9e3779b9 + (lhs << 6) + (lhs >> 2);
   return lhs;
@@ -134,6 +139,7 @@ void RaftContext::SendSnapshot(uint64_t to) {
   this->msgs_.push_back(msg);
 }
 
+//What do we need in the snapshot to safely continue?
 void RaftContext::SendSnapshot_b(uint64_t to) {
   SPDLOG_INFO("send snap to " + std::to_string(to));
   eraftpb::Snapshot* snapshot = new eraftpb::Snapshot();
@@ -154,21 +160,22 @@ void RaftContext::SendSnapshot_b(uint64_t to) {
 bool RaftContext::SendAppend_b(uint64_t to) {
   std::shared_ptr<eraft::ListNode> curr = this->raftLog_->lHead;
   std::vector<eraftpb::Block> blockList;
-  for (int i = 0; i < this->prs_b[to]->next; i++) {
+  for (int i = 0; i < this->prs_b[to]->next; ++i) {
     blockList.push_back(curr->block); //list of length prs_b[to]->next size.. (offset to send node i) TODO: Speedup?
     curr = curr->next;
   }
 
-  eraftpb::Block prevBlock = (curr->next)->block; //Do we even need this?
-  if (blockList.size() > 0) { //Wat to do if no blocks to send?
-    eraftpb::BlockMessage msg;
-    msg.set_msg_type(eraftpb::MsgAppend);
-    msg.set_from(this->id_);
-    msg.set_to(to);
-    msg.set_term(this->term_);
-    msg.set_last_term(this->raftLog_->lastAppendedTerm);
-    msg.set_allocated_commit(&this->raftLog_->commitMarker->block);
-    msg.set_allocated_prev_block(&prevBlock);
+  eraftpb::Block prevBlock = curr->block;
+  eraftpb::BlockMessage msg;
+  msg.set_msg_type(eraftpb::MsgAppend);
+  msg.set_from(this->id_);
+  msg.set_to(to);
+  msg.set_term(this->term_);
+  msg.set_last_term(this->raftLog_->lastAppendedTerm);
+  msg.set_allocated_commit(&this->raftLog_->commitMarker->block);
+  msg.set_allocated_prev_block(&prevBlock);
+
+  if (blockList.size() > 0) { //If there is a chain behind it..add blocks
     for (auto it : blockList) {
       eraftpb::Block* e = msg.add_blocks();
       e->set_entry_type(it.entry_type());
@@ -177,8 +184,9 @@ bool RaftContext::SendAppend_b(uint64_t to) {
       SPDLOG_INFO("SET BLOCK DATA =============================" +
                   it.data());
     }  
-    this->msgs_b.push_back(msg);
   }
+
+  this->msgs_b.push_back(msg);
   return true;
 }
 
@@ -536,14 +544,16 @@ void RaftContext::BecomeLeader_b() {
   //Create dummy entry to start heartbeating with
   eraftpb::Block blk;
   blk.set_entry_type(eraftpb::EntryNormal);
-  blk.set_uid(0); //TODO Generate id
+  RandIntn(uint64_t n)
+  blk.set_uid(RandIntn(std::numeric_limits<uint64_t>::max())); //TODO Generate id
   blk.set_data("");
   std::shared_ptr<eraft::ListNode> newNode;
   newNode->block = blk;
   newNode->next = this->raftLog_->lHead;
   this->raftLog_->lHead = newNode;
   this->BcastAppend_b();
-  SPDLOG_INFO("node become leader (block) at term " + std::to_string(this->term_));
+  SPDLOG_INFO("node become leader (block) at term " + std::to_string(this->term_) +
+                "dummy block id: " + std::to_string(blk.uid()));
 }
 
 void RaftContext::BecomeLeader() {
@@ -1102,22 +1112,28 @@ bool RaftContext::HandleAppendEntries_b(eraftpb::BlockMessage m) {
   this->randomElectionTimeout_ = this->electionTimeout_ + RandIntn(this->electionTimeout_);
   this->lead_ = m.from();
 
-  std::shared_ptr<eraft::ListNode> prev = this->raftLog_->FindBlock(m.prev_block()); //check for prev block on our local chains
-  if (prev == nullptr) { //not found
+  std::shared_ptr<eraft::ListNode> prev_node = this->raftLog_->FindBlock(m.prev_block()); //check for prev block on our local chains
+  if (prev_node == nullptr) { //not found
     this->SendAppendResponse_b(m.from(), true);
     return false;
   } else {
-    //Add to our chain.. where prev_block is now the tail of the sub-chain..
+
     std::shared_ptr<eraft::ListNode> tail;
-    auto new_tail = this->raftLog_->hTails_.find(prev); //get the tail of prev if exists
-    if (new_tail == this->raftLog_->hTails_.end()) {
+    auto tail_it = this->raftLog_->hTails_.find(prev_node); //get the tail of prev if exists
+    if (tail_it == this->raftLog_->hTails_.end()) {
       tail = prev;
     } else {
-      tail = new_tail->second;
-      hTails_.erase(prev); //remove entries with prev head as key
+      tail = tail_it.second;
+      hTails_.erase(prev); //remove entries with prev head as key (will update later)
     }
 
-    std::shared_ptr<eraft::ListNode> head = tail; //Now update head.
+    //Add match block (bridge)
+    std::shared_ptr<eraft::ListNode> bridge;
+    bridge->next = this->raftLog_->lHead;
+    bridge->block = m.prev_block();
+    this->raftLog_->lHead = bridge;
+
+    //Add any linked blocks
     for (auto block : m.blocks()) {
       //TODO: One place where we would need to track ids of blocks we've seen and not yet persisted.
       std::shared_ptr<ListNode> newLink;
@@ -1139,21 +1155,20 @@ bool RaftContext::HandleAppendEntries_b(eraftpb::BlockMessage m) {
       offset++;
       temp = temp->next;
     }
+
     std::shared_ptr<ListNode> new_commit_marker = temp; //TODO Remove all above and just call find block??
     std::vector<eraftpb::Block> chain; //chain between old commit marker and new (temp)
-
     while(!this->raftLog_->isSameBlock(temp->block, this->raftLog_->commited_marker->block)){
       chain.push_back(temp->block);
       temp = temp->next;
     }
-
     std::reverse(chain.begin(), chain.end());
-    for (int i = 0; i < chain.size(); ++i){
+    for (int i = 0; i < chain.size(); ++i) {
       //translate to entries
       eraftpb::Entry new_ent;
       new_ent.set_entry_type(chain[i].entry_type());
       new_ent.set_data(chain[i].data());
-      new_ent.set_term(0)
+      new_ent.set_term(1);
       new_ent.set_index(this->raftLog_->commited_ + i + 1);
       this->raftLog_->entries_.push_back(new_ent);
     }
@@ -1338,7 +1353,7 @@ void RaftContext::LeaderCommit_b() {
     eraftpb::Entry new_ent;
     new_ent.set_entry_type(chain[i].entry_type());
     new_ent.set_data(chain[i].data());
-    new_ent.set_term(0)
+    new_ent.set_term(1)
     new_ent.set_index(this->raftLog_->commited_ + i + 1);
     this->raftLog_->entries_.push_back(new_ent);
   }
@@ -1399,23 +1414,24 @@ bool RaftContext::HandleHeartbeat_b(eraftpb::BlockMessage m) {
   this->SendHeartbeatResponse(m.from(), false);
 }
 
+//NOTE: Leader will always create IDs for blocks here..
 void RaftContext::AppendEntries_b(std::vector<std::shared_ptr<eraftpb::Block>> blocks) {
-  //TODO: Check for id??
+  //TODO: keep track of last "batch" size, so leader can accurately compute offsets
   SPDLOG_INFO("append blocks size " + std::to_string(blocks.size()));
   std::shared_ptr<eraft::ListNode> old_head = this->raftLog_->lHead;
   uint64_t iter = 0;
   for (auto block: blocks) {
     iter++;
     block->set_term(this->term_);
-    if (entry->entry_type() == eraftpb::EntryConfChange) {
+    block->set_uid(RandIntn(std::numeric_limits<uint64_t>::max()));
+    if (block->entry_type() == eraftpb::EntryConfChange) {
       if (this->pendingConfIndex_ != NONE) { //??
         continue;
       }
       auto offset =  this->raftLog_->HeadtoCommitOffset();
       this->pendingConfIndex_ = this->raftLog_->commited_ + offset + iter; // TODO: need way to get index of block..(potentially lhead -> commit offeset + committed_)
     }
-    //TODO: Have leader tag with ID
-    std::shared_ptr<eraft::ListNode> newLink
+    std::shared_ptr<eraft::ListNode> newLink;
     newLink->block = block;
     newLink->next = this->raftLog_->lHead;
     this->raftLog_->lHead = newLink;
@@ -1495,9 +1511,21 @@ bool RaftContext::HandleSnapshot(eraftpb::Message m) {
 bool RaftContext::HandleSnapshot_b(eraftpb::BlockMessage m) {
   SPDLOG_INFO("handle snapshot from: " + std::to_string(m.from()));
   eraftpb::SnapshotMetadata meta = m.snapshot().metadata();
+  //Just do sanity check right here?
   if (meta.index() <= this->raftLog_->commited_) {
     this->SendAppendResponse_b(m.from(), false);
     return false;
+  }
+  uint64_t offset = meta.index() - this->raftLog_->commited_;
+  uint64_t head_offset = this->raftLog_->HeadtoCommitOffset();
+  if (offset > this->raftLog_->HeadtoCommitOffset()){
+    return false;
+    //cannot handle the snapshot yet..
+    //TODO: become follower, but send false?
+    //Eventually get new snapshot request
+  } else {
+    self->raftLog_->commit_marker = self->raftLog_->WalkBackN();
+
   }
   this->BecomeFollower(std::max(this->term_, m.term()), m.from());
   uint64_t first = meta.index() + 1;
@@ -1511,6 +1539,9 @@ bool RaftContext::HandleSnapshot_b(eraftpb::BlockMessage m) {
   for (auto peer : meta.conf_state().nodes()) {
     this->prs_[peer] = std::make_shared<Progress>();
   }
+
+  //TODO: we need commit_marker and head to be up to date
+  //Need function to loose compare
   this->raftLog_->pendingSnapshot_ = m.snapshot();
   this->SendAppendResponse_b(m.from(), false);
 }
@@ -1547,7 +1578,7 @@ bool RaftContext::HandleTransferLeader_b(eraftpb::BlockMessage m) {
   this->leadTransferee_ = m.from();
   this->transferElapsed_ = 0;
   if (this->prs_[m.from()]->match == 0) { //maybe wrong??
-    this->SendTimeoutNow_b(m.from()); //not sure if need _b
+    this->SendTimeoutNow_b(m.from()); 
   } else {
     this->SendAppend_b(m.from());
   }

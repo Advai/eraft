@@ -196,6 +196,9 @@ class RaftContext : StateMachine {
   void Tick();
   void TickB();
 
+  //Generate Random ID
+  uint64_t GenBlockID();
+
   std::map<uint64_t, std::shared_ptr<Progress> > prs_;
   std::map<uint64_t, std::shared_ptr<Progress> > prs_b;
 
