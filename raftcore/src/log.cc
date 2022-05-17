@@ -62,6 +62,7 @@ RaftLog::RaftLog(std::shared_ptr<StorageInterface> st) {
   this->stabled_ = hi;
   this->firstIndex_ = lo;
   this->commited_ = 0;
+  this->lastAppendedTerm = 0;
   eraftpb::Block* genesis = new eraftpb::Block();
   genesis->set_data("GENESIS");
   genesis->set_entry_type(eraftpb::EntryNormal);

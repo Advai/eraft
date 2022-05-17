@@ -1192,15 +1192,17 @@ bool RaftContext::HandleRequestVoteResponse(eraftpb::Message m) {
 bool RaftContext::HandleAppendEntries_b(eraftpb::BlockMessage m) {
   SPDLOG_INFO("handle append entries (block)");
   if (m.term() != NONE && m.term() < this->term_) {
+    SPDLOG_INFO("handle append entries (block) rejected - term too low");
     this->SendAppendResponse_b(m.from(), true);
     return false;
   }
   this->electionElapsed_ = 0;
   this->randomElectionTimeout_ = this->electionTimeout_ + RandIntn(this->electionTimeout_);
   this->lead_ = m.from();
-
+  SPDLOG_INFO("prev_block " + eraft::BlockToString(m.prev_block()));
   std::shared_ptr<eraft::ListNode> prev_node = this->raftLog_->FindBlock(m.prev_block()); //check for prev block on our local chains
   if (prev_node == nullptr) { //not found
+    SPDLOG_INFO("handle append entries (block) rejected - block not found");
     this->SendAppendResponse_b(m.from(), true);
     return false;
   } else {
@@ -1246,10 +1248,12 @@ bool RaftContext::HandleAppendEntries_b(eraftpb::BlockMessage m) {
     std::shared_ptr<ListNode> new_commit_marker = temp; //TODO Remove all above and just call find block??
     std::vector<eraftpb::Block> chain; //chain between old commit marker and new (temp)
     while(!this->raftLog_->isSameBlock(temp->block, this->raftLog_->commited_marker->block)){
+      SPDLOG_INFO("node adding block to commit chain: " + std::to_string(temp->block.uid()));
       chain.push_back(temp->block);
       temp = temp->next;
     }
     std::reverse(chain.begin(), chain.end());
+    SPDLOG_INFO("node persisting commit chain to log (block)");
     for (int i = 0; i < chain.size(); ++i) {
       //translate to entries
       eraftpb::Entry new_ent; //potential problem
@@ -1259,6 +1263,7 @@ bool RaftContext::HandleAppendEntries_b(eraftpb::BlockMessage m) {
       new_ent.set_index(this->raftLog_->commited_ + i + 1);
       this->raftLog_->entries_.push_back(new_ent);
     }
+	  SPDLOG_INFO("new size of commited entries: " + std::to_string(this->raftLog_->entries_.size()));
     this->raftLog_->commited_ = this->raftLog_->entries_.size() - 1;
     this->raftLog_->commited_marker = new_commit_marker;
     this->raftLog_->CommitGarbageCollect(chain.size());
@@ -1364,6 +1369,7 @@ bool RaftContext::HandleAppendEntriesResponse_b(eraftpb::BlockMessage m) {
     this->SendTimeoutNow_b(m.from()); 
     this->leadTransferee_ = NONE;
   }
+  
   return true;
 }
 

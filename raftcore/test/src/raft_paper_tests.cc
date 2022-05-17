@@ -859,20 +859,20 @@ TEST(RaftPaperTests, TestLeaderCommitPrecedingEntries2AB) {
         std::make_shared<eraft::RaftContext>(c);
     r->term_ = 2;
     r->BecomeCandidate();
-    r->BecomeLeader();
+    r->BecomeLeader_b();
 
-    eraftpb::Message proposeMsg;
+    eraftpb::BlockMessage proposeMsg;
     proposeMsg.set_from(1);
     proposeMsg.set_to(1);
     proposeMsg.set_msg_type(eraftpb::MsgPropose);
-    eraftpb::Entry* eptr = proposeMsg.add_entries();
+    eraftpb::Block* eptr = proposeMsg.add_blocks();
 
     eptr->set_data("12306");
-    r->Step(proposeMsg);
+    r->StepB(proposeMsg);
 
-    std::vector<eraftpb::Message> msgs = r->ReadMessage();
+    std::vector<eraftpb::BlockMessage> msgs = r->ReadMessageB();
     for (auto m : msgs) {
-      r->Step(AcceptAndReply(m));
+      r->StepB(AcceptAndReply(m));
     }
 
     uint64_t li = tt.size();
@@ -894,69 +894,70 @@ TEST(RaftPaperTests, TestLeaderCommitPrecedingEntries2AB) {
 // // TestFollowerCommitEntry tests that once a follower learns that a log entry
 // // is committed, it applies the entry to its local state machine (in log order).
 // // Reference: section 5.3
-// TEST(RaftPaperTests, TestFollowerCommitEntry2AB) {
-//   eraftpb::Entry en1, en2, en3, en4;
-//   en1.set_term(1);
-//   en1.set_index(1);
-//   en1.set_data("12333");
-//   en2.set_term(1);
-//   en2.set_index(2);
-//   en2.set_data("2333");
-//   en3.set_term(1);
-//   en3.set_index(1);
-//   en3.set_data("2445");
-//   en4.set_term(1);
-//   en4.set_index(2);
-//   en4.set_data("12233");
+TEST(RaftPaperTests, TestFollowerCommitEntry2AB) {
+  eraftpb::Entry en1, en2, en3, en4;
+  en1.set_term(1);
+  en1.set_index(1);
+  en1.set_data("12333");
+  en2.set_term(1);
+  en2.set_index(2);
+  en2.set_data("2333");
+  en3.set_term(1);
+  en3.set_index(1);
+  en3.set_data("2445");
+  en4.set_term(1);
+  en4.set_index(2);
+  en4.set_data("12233");
 
-//   std::vector<eraftpb::Entry*> ens1, ens2, ens3, ens4;
-//   ens1.push_back(&en1);
-//   ens2.push_back(&en1);
-//   ens2.push_back(&en2);
-//   ens3.push_back(&en3);
-//   ens3.push_back(&en4);
-//   ens4.push_back(&en1);
-//   ens4.push_back(&en2);
+  std::vector<eraftpb::Entry*> ens1, ens2, ens3, ens4;
+  ens1.push_back(&en1);
+  ens2.push_back(&en1);
+  ens2.push_back(&en2);
+  ens3.push_back(&en3);
+  ens3.push_back(&en4);
+  ens4.push_back(&en1);
+  ens4.push_back(&en2);
 
-//   std::vector<std::pair<std::vector<eraftpb::Entry*>, uint64_t> > tests = {
-//       {ens1, 1}, {ens2, 2}, {ens3, 2}, {ens4, 1}};
-//   for (auto tt : tests) {
-//     std::shared_ptr<eraft::StorageInterface> memSt =
-//         std::make_shared<eraft::MemoryStorage>();
-//     std::vector<uint64_t> ids = IdsBySize(3);
-//     eraft::Config c(1, ids, 10, 1, memSt);
-//     std::shared_ptr<eraft::RaftContext> r =
-//         std::make_shared<eraft::RaftContext>(c);
+  std::vector<std::pair<std::vector<eraftpb::Entry*>, uint64_t> > tests = {
+      {ens1, 1}, {ens2, 2}, {ens3, 2}, {ens4, 1}};
+  for (auto tt : tests) {
+    std::shared_ptr<eraft::StorageInterface> memSt =
+        std::make_shared<eraft::MemoryStorage>();
+    std::vector<uint64_t> ids = IdsBySize(3);
+    eraft::Config c(1, ids, 10, 1, memSt);
+    std::shared_ptr<eraft::RaftContext> r =
+        std::make_shared<eraft::RaftContext>(c);
 
-//     r->BecomeFollower(1, 2);
+    r->BecomeFollower(1, 2);
 
-//     eraftpb::Message appEnd;
-//     appEnd.set_from(2);
-//     appEnd.set_to(1);
-//     appEnd.set_msg_type(eraftpb::MsgAppend);
-//     appEnd.set_term(1);
-//     for (auto e : tt.first) {
-//       eraftpb::Entry* en = appEnd.add_entries();
-//       en->set_index(e->index());
-//       en->set_data(e->data());
-//       en->set_term(e->term());
-//       en->set_entry_type(e->entry_type());
-//     }
-//     appEnd.set_commit(tt.second);
+    eraftpb::BlockMessage appEnd;
+    appEnd.set_from(2);
+    appEnd.set_to(1);
+    appEnd.set_msg_type(eraftpb::MsgAppend);
+    appEnd.set_term(1);
+    // appEnd.set_commit();
+    for (auto e : tt.first) {
+      eraftpb::Block* en = appEnd.add_blocks();
+      // en->set_index(e->index());
+      en->set_data(e->data());
+      // en->set_term(e->term());
+      en->set_entry_type(e->entry_type());
+    }
+    // appEnd.set_commit(tt.second);
 
-//     r->Step(appEnd);
+    r->StepB(appEnd);
 
-//     std::cout << r->raftLog_->commited_ << std::endl;
-//     ASSERT_EQ(r->raftLog_->commited_, tt.second);
+    std::cout << r->raftLog_->commited_ << std::endl;
+    ASSERT_EQ(r->raftLog_->commited_, tt.second);
 
-//     std::vector<eraftpb::Entry> ents = r->raftLog_->NextEnts();
-//     std::cout << "ROUND START " << std::endl;
-//     for (auto e : ents) {
-//       std::cout << eraft::EntryToString(e) << std::endl;
-//     }
-//     std::cout << "ROUND END " << std::endl;
-//   }
-// }
+    std::vector<eraftpb::Entry> ents = r->raftLog_->NextEnts();
+    std::cout << "ROUND START " << std::endl;
+    for (auto e : ents) {
+      std::cout << eraft::EntryToString(e) << std::endl;
+    }
+    std::cout << "ROUND END " << std::endl;
+  }
+}
 
 // struct TestEntry3 {
 //   TestEntry3(uint64_t term, uint64_t index, bool wreject) {
