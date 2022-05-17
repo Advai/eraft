@@ -159,22 +159,31 @@ void RaftContext::SendSnapshot_b(uint64_t to) {
 // DONE
 bool RaftContext::SendAppend_b(uint64_t to) {
   SPDLOG_INFO("node called send append (block)");
-  std::shared_ptr<eraft::ListNode> curr = this->raftLog_->lHead;
+//   auto curr(this->raftLog_->lHead);
+//   std::shared_ptr<eraft::ListNode> curr = this->raftLog_->lHead;
+  std::shared_ptr<eraft::ListNode> curr = std::make_shared<eraft::ListNode>(*this->raftLog_->lHead);
+  auto curr_com = std::make_shared<eraft::ListNode>(*this->raftLog_->commited_marker);
+//   curr->block = this->raftLog_->lHead_->block;
+//   curr->next = this->raftLog_->lHead_->next;
   std::vector<eraftpb::Block> blockList;
-  for (int i = 0; i < this->prs_b[to]->next; ++i) {
-    blockList.push_back(curr->block); //list of length prs_b[to]->next size.. (offset to send node i) TODO: Speedup?
-    curr = curr->next;
-  }
+//   for (int i = 0; i < this->prs_b[to]->next; ++i) {
+//     blockList.push_back(curr->block); //list of length prs_b[to]->next size.. (offset to send node i) TODO: Speedup?
+//     curr = curr->next;
+//   }
   SPDLOG_INFO("Pushed to blockList");
-  eraftpb::Block prevBlock = curr->block;
+  eraftpb::Block* blk = new eraftpb::Block;
+  eraftpb::Block* prev_blk = new eraftpb::Block;
+  *blk = curr_com->block;
+  *prev_blk = curr->block;
+//   SPDLOG_INFO("curr block value: " + prevBlock);
   eraftpb::BlockMessage msg;
   msg.set_msg_type(eraftpb::MsgAppend);
   msg.set_from(this->id_);
   msg.set_to(to);
   msg.set_term(this->term_);
   msg.set_last_term(this->raftLog_->lastAppendedTerm);
-  msg.set_allocated_commit(&this->raftLog_->commited_marker->block);
-  msg.set_allocated_prev_block(&prevBlock);
+  msg.set_allocated_commit(blk);
+  msg.set_allocated_prev_block(prev_blk);
   SPDLOG_INFO("Set message");
   if (blockList.size() > 0) { //If there is a chain behind it..add blocks
   SPDLOG_INFO("non-zero block list");
@@ -348,12 +357,14 @@ void RaftContext::SendHeartbeatResponse_b(uint64_t to, bool reject) {
 // DONE
 void RaftContext::SendRequestVote_b(uint64_t to, uint64_t term) {
   eraftpb::BlockMessage msg;
+  eraftpb::Block* blk = new eraftpb::Block;
+  *blk = this->raftLog_->lHead->block;
   msg.set_msg_type(eraftpb::MsgRequestVote);
   msg.set_from(this->id_);
   msg.set_to(to);
   msg.set_term(this->term_);
   msg.set_last_term(term);
-  msg.set_allocated_prev_block(&this->raftLog_->lHead->block);
+  msg.set_allocated_prev_block(blk);
   SPDLOG_INFO("send request vote to -> " + std::to_string(to) + " index -> "
       + " term -> " + std::to_string(term));
 
@@ -543,10 +554,10 @@ void RaftContext::BecomeLeader_b() {
   for (auto peer : this->prs_b) {
     if (peer.first == this->id_) {
       //Todo: make nextB, matchB for block only operations
-      this->prs_b[peer.first]->next = 1;
+      this->prs_b[peer.first]->next = 0;
       this->prs_b[peer.first]->match = 0;
     } else {
-      this->prs_b[peer.first]->next = 1;
+      this->prs_b[peer.first]->next = 0;
     }
   }
   SPDLOG_INFO("Updated next and match");
@@ -1131,6 +1142,7 @@ bool RaftContext::HandleRequestVoteResponse_b(eraftpb::BlockMessage m) {
   SPDLOG_INFO("handle request vote response from peer " +
               std::to_string(m.from()));
   if (m.term() != NONE && m.term() < this->term_) { // reject stale message
+  	SPDLOG_INFO("Sent Reject handleRequestVoteResponse_b");
     this->SendRequestVoteResponse_b(m.from(), true);
     return false;
   }
@@ -1138,15 +1150,17 @@ bool RaftContext::HandleRequestVoteResponse_b(eraftpb::BlockMessage m) {
   this->votes_[m.from()] = !m.reject();
   uint8_t grant = 0;
   uint8_t votes = this->votes_.size();
-  uint8_t threshold = this->prs_b.size()/2 +1;
+  uint8_t threshold = this->prs_b.size()/2;
   for (auto vote : this->votes_) {
     if (vote.second) {
       grant++;
     }
   }
   if (grant > threshold) {
+	  SPDLOG_INFO("Become leader from handleRequestVoteResponse_b");
     this->BecomeLeader_b();
   } else if (votes - grant > threshold) {
+	  SPDLOG_INFO("Become follower from handleRequestVoteResponse_b");
     this->BecomeFollower(this->term_, NONE);
     //Potentially need to use block version..
   }
@@ -1497,27 +1511,36 @@ void RaftContext::AppendEntries_b(std::vector<std::shared_ptr<eraftpb::Block>> b
     iter++;
     // block->set_term(this->term_);
     block->set_uid(this->GenBlockID());
+	  SPDLOG_INFO("set uuid");
     if (block->entry_type() == eraftpb::EntryConfChange) {
       if (this->pendingConfIndex_ != NONE) { //??
         continue;
       }
+	    SPDLOG_INFO("head to commit offset");
       auto offset =  this->raftLog_->HeadtoCommitOffset();
       this->pendingConfIndex_ = this->raftLog_->commited_ + offset + iter; // TODO: need way to get index of block..(potentially lhead -> commit offeset + committed_)
     }
-    std::shared_ptr<eraft::ListNode> newLink;
+    SPDLOG_INFO("leader allocating new block onto chain: " + std::to_string(block->uid()));
+    std::shared_ptr<eraft::ListNode> newLink = std::make_shared<ListNode>();
     newLink->block = *block;
     newLink->next = this->raftLog_->lHead;
     this->raftLog_->lHead = newLink;
+    SPDLOG_INFO("leader update head");
   }
   //update state: peer offsets, match and next for each peer
+  SPDLOG_INFO("setting prs_b");
   for (auto it : this->prs_b) {
     it.second->match += blocks.size();
     it.second->next += blocks.size();
   }
+  SPDLOG_INFO("reset prs_b for this id");
   this->prs_b[this->id_]->match = 0;
   this->prs_b[this->id_]->next =  0;
+  SPDLOG_INFO("erase called");
   this->raftLog_->hTails_.erase(old_head);
+  SPDLOG_INFO("erase worked");
   this->raftLog_->hTails_[this->raftLog_->lHead] = this->raftLog_->commited_marker; //tail is closest node ON THE COMMIT CHAIN
+  SPDLOG_INFO("bcast append from AppendEntries_b");
   this->BcastAppend_b();
 }
 
@@ -1635,6 +1658,7 @@ bool RaftContext::HandleTransferLeader(eraftpb::Message m) {
 }
 
 bool RaftContext::HandleTransferLeader_b(eraftpb::BlockMessage m) {
+  SPDLOG_INFO("Transfer Leader called");
   if (m.from() == this->id_) {
     return false;
   }

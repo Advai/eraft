@@ -136,8 +136,19 @@ static std::string MessageToString(eraftpb::Message m) {
   return str1;
 }
 
+static std::string BlockMessageToString(eraftpb::BlockMessage m) {
+  std::string str1;
+  google::protobuf::TextFormat::PrintToString(m, &str1);
+  return str1;
+}
 // protobuf Entry to string
 static std::string EntryToString(eraftpb::Entry m) {
+  std::string str1;
+  google::protobuf::TextFormat::PrintToString(m, &str1);
+  return str1;
+}
+
+static std::string BlockToString(eraftpb::Block m) {
   std::string str1;
   google::protobuf::TextFormat::PrintToString(m, &str1);
   return str1;
