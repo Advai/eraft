@@ -257,8 +257,10 @@ class RaftContext : StateMachine {
   bool DoElection();
 
   void BcastHeartbeat();
+  // void BcastHeartbeat_b();
 
   void BcastAppend();
+  void BcastAppend_b();
 
   bool HandleRequestVote(eraftpb::Message m);
 
@@ -327,11 +329,11 @@ class RaftContext : StateMachine {
 
   //bool StepB(eraftpb::BlockMessage m);
 
-  void StepFollowerB(eraftpb::Message m);
+  void StepFollowerB(eraftpb::BlockMessage m);
 
-  void StepCandidateB(eraftpb::Message m);
+  void StepCandidateB(eraftpb::BlockMessage m);
 
-  void StepLeaderB(eraftpb::Message m);
+  void StepLeaderB(eraftpb::BlockMessage m);
 
   // sendHeartbeat sends a heartbeat RPC to the given peer.
   void SendHeartbeat_b(uint64_t to);
@@ -339,42 +341,32 @@ class RaftContext : StateMachine {
   void SendHeartbeatResponse_b(uint64_t to, bool reject);
 
   // DONE
-  bool HandleRequestVote_b(eraftpb::Message m);
-  // DONE
-  void SendAppend_b(uint64_t to);
-  // DONE
-  bool HandleRequestVoteResponse_b(eraftpb::Message m);
-  void SendRequestVoteResponse_b(uint64_t to, bool reject)
-
-  bool DoElection_b();
-  // DONE
-  void BcastAppend_b();
-  // DONE
   bool HandleRequestVote_b(eraftpb::BlockMessage m);
   // DONE
   bool HandleRequestVoteResponse_b(eraftpb::BlockMessage m);
+  //DONE
+  void SendRequestVoteResponse_b(uint64_t to, bool reject);
+
+  bool DoElection_b();
   // DONE
   bool HandleAppendEntries_b(eraftpb::BlockMessage m);
   // DONE
   bool HandleAppendEntriesResponse_b(eraftpb::BlockMessage m);
   // DONE
   void SendRequestVote_b(uint64_t to, uint64_t term);
-  // DONE
-  void BecomeLeader_b();
   //DONE
   void AppendEntries_b(std::vector<std::shared_ptr<eraftpb::Block>> blocks);
   //DONE
   void SendAppendResponse_b(uint64_t to, bool reject);
   //DONE
   void LeaderCommit_b();
-
+  bool HandleHeartbeat_b(eraftpb::BlockMessage m);
   //TODO: IN PROGRESS
-  void HandleTransferLeader_b();
-  void HandleSnapshot_b();
+  bool HandleTransferLeader_b(eraftpb::BlockMessage m);
+  bool HandleSnapshot_b(eraftpb::BlockMessage m);
   //void SendSnapshot_b(uint64_t to);
   //void SendTimeoutNow_b(uint64_t to);
 };
 
 }  // namespace eraft
-
-#endif  // ERAFT_RAFTCORE_RAFT_H
+#endif

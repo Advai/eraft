@@ -61,17 +61,17 @@ RaftLog::RaftLog(std::shared_ptr<StorageInterface> st) {
   this->applied_ = lo - 1;
   this->stabled_ = hi;
   this->firstIndex_ = lo;
-
-  eraftpb::Block genesis;
-  genesis.set_data("GENESIS");
-  genesis.set_entry_type(eraftpb::EntryNormal);
-  genesis.set_uid(0);
+  this->commited_ = 0;
+  eraftpb::Block* genesis = new eraftpb::Block();
+  genesis->set_data("GENESIS");
+  genesis->set_entry_type(eraftpb::EntryNormal);
+  genesis->set_uid(0);
   // blk.set_uid(uuids::to_string(uuids::uuid_system_gnerator{}()));
   // init list node and pushback to vec
   //std::vector<std::shared_ptr<ListNode>> cHead;
-  std::shared_ptr<ListNode> GenNode;
-  GenNode->block = genesis;
-  GenNode->next = std::shared_ptr<ListNode>{};
+  std::shared_ptr<ListNode> GenNode = std::make_shared<ListNode>();
+  GenNode->block = *genesis;
+  GenNode->next = nullptr; //MEMPROBLEM?
   this->_Genesis = GenNode; 
   //vec.push_back(GenNode);
   //this->cHeads_ = vec;
@@ -171,16 +171,16 @@ std::pair<uint64_t, bool> RaftLog::Term(uint64_t i) {
     Compare Block abstraction layer
 */
 
-bool RaftLog::isSameBlock(static eraftpb::Block& block1, static eraft::Block& block2){
+bool RaftLog::isSameBlock(eraftpb::Block block1, eraftpb::Block block2){
   return ((block1.data() == block2.data()) && (block1.uid() == block2.uid()) && (block1.entry_type() == block2.entry_type()));
 }
 
 void RaftLog::RemoveSideChains() {
-  auto block = this->commitMarker->next->block;
+  auto block = this->commited_marker->next->block;
 }
 
-std::shared_ptr<ListNode> RaftLog::WalkBackN(ListNode* head, int n) {
-  ListNode* curr = head;
+std::shared_ptr<ListNode> RaftLog::WalkBackN(std::shared_ptr<ListNode> head, int n) {
+  std::shared_ptr<ListNode> curr = head;
   for (int i = 0; i < n; i++) {
     curr = curr->next;
   }
@@ -214,7 +214,7 @@ std::shared_ptr<ListNode> RaftLog::FindBlock(eraftpb::Block block) {
 std::shared_ptr<ListNode> RaftLog::FindBlockFrom(eraftpb::Block block, std::shared_ptr<ListNode> head) {
   std::shared_ptr<ListNode> temp = head;
   while (!isSameBlock(temp->block, block)){
-    if (temp == this->_Genesis || temp->next = nullptr) {
+    if (temp == this->_Genesis || !(temp->next)) {
       return nullptr;
     }
     temp = temp->next;
@@ -226,7 +226,7 @@ uint64_t RaftLog::HeadtoCommitOffset() {
   std::shared_ptr temp = this->lHead;
   uint64_t off = 0;
   while (temp != this->commited_marker) {
-    if (temp == this->Genesis_){
+    if (temp == this->_Genesis){
       SPDLOG_INFO("raftlog: bad lookup when tracing from head to commit marker..");
       return off;
     }
@@ -242,14 +242,14 @@ void RaftLog::TryCompactB(){
 }
 
 void RaftLog::FreeChain(std::shared_ptr<ListNode> head, std::shared_ptr<ListNode> tail) {
-  while (head->next != tail  || !head->next == nullptr) {
+  while (head->next != tail  || !(head->next)) {
     std::shared_ptr<ListNode> temp = head;
     head = head->next;
     if (this->hTails_.find(temp) != this->hTails_.end()){
-      this->hTails_.remove(temp);
+      this->hTails_.erase(temp);
     }
-    free(temp->block);
-    delete(temp); //should do automatically 
+    temp->next = nullptr;
+    free(&temp->block);
   }
 }
 
@@ -263,7 +263,7 @@ void RaftLog::CommitGarbageCollect(uint8_t n) {
       if (it.second == tail && it.first != this->commited_marker) { //tail is node that directly extends the commit chain
         collected++; //can garbage collect..delete pointers and update structures
         this->FreeChain(it.first, it.second);
-        this->hTails_.remove(it.first);
+        this->hTails_.erase(it.first);
         //this->bMap[it.first.] -> just do inside free function
       }
     }

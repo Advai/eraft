@@ -54,10 +54,10 @@ TEST(RaftPaperTests, TestFollowerUpdateTermFromMessage2AA) {
   std::shared_ptr<eraft::RaftContext> r =
       std::make_shared<eraft::RaftContext>(c);
   r->BecomeFollower(1, 2);
-  eraftpb::Message appendMsg;
+  eraftpb::BlockMessage appendMsg;
   appendMsg.set_term(2);
   appendMsg.set_msg_type(eraftpb::MsgAppend);
-  r->Step(appendMsg);
+  r->StepB(appendMsg);
   ASSERT_EQ(r->term_, 2);
   ASSERT_EQ(r->state_, eraft::NodeState::StateFollower);
 }
@@ -70,10 +70,10 @@ TEST(RaftPaperTests, TestCandidateUpdateTermFromMessage2AA) {
   std::shared_ptr<eraft::RaftContext> r =
       std::make_shared<eraft::RaftContext>(c);
   r->BecomeCandidate();
-  eraftpb::Message appendMsg;
+  eraftpb::BlockMessage appendMsg;
   appendMsg.set_term(2);
   appendMsg.set_msg_type(eraftpb::MsgAppend);
-  r->Step(appendMsg);
+  r->StepB(appendMsg);
   ASSERT_EQ(r->term_, 2);
   ASSERT_EQ(r->state_, eraft::NodeState::StateFollower);
 }
@@ -86,11 +86,15 @@ TEST(RaftPaperTests, TestLeaderUpdateTermFromMessage2AA) {
   std::shared_ptr<eraft::RaftContext> r =
       std::make_shared<eraft::RaftContext>(c);
   r->BecomeCandidate();
-  r->BecomeLeader();
-  eraftpb::Message appendMsg;
+  std::cout << "Hello\n";
+  r->BecomeLeader_b();
+  std::cout << "Became Leader\n";
+  eraftpb::BlockMessage appendMsg;
   appendMsg.set_term(2);
   appendMsg.set_msg_type(eraftpb::MsgAppend);
-  r->Step(appendMsg);
+  std::cout << "Bouta step\n";
+  r->StepB(appendMsg);
+  std::cout << "Step Done\n";
   ASSERT_EQ(r->term_, 2);
   ASSERT_EQ(r->state_, eraft::NodeState::StateFollower);
 }
@@ -119,17 +123,17 @@ TEST(RaftPaperTests, TestLeaderBcastBeat2AA) {
   std::shared_ptr<eraft::RaftContext> r =
       std::make_shared<eraft::RaftContext>(c);
   r->BecomeCandidate();
-  r->BecomeLeader();
+  r->BecomeLeader_b();
 
-  eraftpb::Message propMsg;
+  eraftpb::BlockMessage propMsg;
   propMsg.set_msg_type(eraftpb::MsgPropose);
-  r->ReadMessage();  // clear message
+  r->ReadMessageB();  // clear message
 
   for (uint8_t i = 0; i < hi; i++) {
-    r->Tick();
+    r->TickB();
   }
 
-  std::vector<eraftpb::Message> msgs = r->ReadMessage();
+  std::vector<eraftpb::BlockMessage> msgs = r->ReadMessageB();
   for (auto msg : msgs) {
     std::cout << "msg.from(): " << msg.from() << " msg.to(): " << msg.to()
               << " msg.term(): " << msg.term()
@@ -160,7 +164,7 @@ TEST(RaftPaperTests, TestFollowerStartElection2AA) {
   r->BecomeFollower(1, 2);
 
   for (uint8_t i = 1; i < 2 * et; i++) {
-    r->Tick();
+    r->TickB();
   }
 
   ASSERT_EQ(r->term_, 2);
@@ -169,7 +173,7 @@ TEST(RaftPaperTests, TestFollowerStartElection2AA) {
 
   ASSERT_TRUE(r->votes_[r->id_]);
 
-  std::vector<eraftpb::Message> msgs = r->ReadMessage();
+  std::vector<eraftpb::BlockMessage> msgs = r->ReadMessageB();
 
   for (auto msg : msgs) {
     std::cout << "msg.from(): " << msg.from() << " msg.to(): " << msg.to()
@@ -191,7 +195,7 @@ TEST(RaftPaperTests, TestCandidateStartNewElection2AA) {
   r->BecomeCandidate();
 
   for (uint8_t i = 1; i < 2 * et; i++) {
-    r->Tick();
+    r->TickB();
   }
 
   ASSERT_EQ(r->term_, 2);
@@ -200,7 +204,7 @@ TEST(RaftPaperTests, TestCandidateStartNewElection2AA) {
 
   ASSERT_TRUE(r->votes_[r->id_]);
 
-  std::vector<eraftpb::Message> msgs = r->ReadMessage();
+  std::vector<eraftpb::BlockMessage> msgs = r->ReadMessageB();
 
   for (auto msg : msgs) {
     std::cout << "msg.from(): " << msg.from() << " msg.to(): " << msg.to()
@@ -272,20 +276,20 @@ TEST(RaftPaperTests, TestLeaderElectionInOneRoundRPC2AA) {
     eraft::Config c(1, IdsBySize(tt.size_), 10, 1, memSt);
     std::shared_ptr<eraft::RaftContext> r =
         std::make_shared<eraft::RaftContext>(c);
-    eraftpb::Message hupMsg;
+    eraftpb::BlockMessage hupMsg;
     hupMsg.set_from(1);
     hupMsg.set_to(1);
     hupMsg.set_msg_type(eraftpb::MsgHup);
-    r->Step(hupMsg);
+    r->StepB(hupMsg);
     uint8_t i = 0;
     for (auto vote : tt.votes_) {
-      eraftpb::Message rvMsg;
+      eraftpb::BlockMessage rvMsg;
       rvMsg.set_from(vote.first);
       rvMsg.set_to(1);
       rvMsg.set_term(r->term_);
       rvMsg.set_msg_type(eraftpb::MsgRequestVoteResponse);
       rvMsg.set_reject(!vote.second);
-      r->Step(rvMsg);
+      r->StepB(rvMsg);
     }
     // std::cout << " r->state_: " << eraft::StateToString(r->state_) << "
     // r->term_:" << r->term_ << std::endl;
@@ -327,15 +331,15 @@ TEST(RaftPaperTests, TestFollowerVote2AA) {
     r->term_ = 1;
     r->vote_ = tt.vote_;
 
-    eraftpb::Message msg;
+    eraftpb::BlockMessage msg;
     msg.set_from(tt.nvote_);
     msg.set_to(1);
     msg.set_term(1);
     msg.set_msg_type(eraftpb::MsgRequestVote);
 
-    r->Step(msg);
+    r->StepB(msg);
 
-    std::vector<eraftpb::Message> msgs = r->ReadMessage();
+    std::vector<eraftpb::BlockMessage> msgs = r->ReadMessageB();
     // 	{From: 1, To: tt.nvote, Term: 1, MsgType:
     // pb.MessageType_MsgRequestVoteResponse, Reject: tt.wreject}
     for (auto msg : msgs) {
@@ -354,17 +358,17 @@ TEST(RaftPaperTests, TestFollowerVote2AA) {
 // it recognizes the leader as legitimate and returns to follower state.
 // Reference: section 5.2
 TEST(RaftPaperTests, TestCandidateFallback2AA) {
-  eraftpb::Message msg1;
+  eraftpb::BlockMessage msg1;
   msg1.set_from(2);
   msg1.set_to(1);
   msg1.set_term(1);
   msg1.set_msg_type(eraftpb::MsgAppend);
-  eraftpb::Message msg2;
+  eraftpb::BlockMessage msg2;
   msg2.set_from(2);
   msg2.set_to(1);
   msg2.set_term(2);
   msg2.set_msg_type(eraftpb::MsgAppend);
-  std::vector<eraftpb::Message> tests;
+  std::vector<eraftpb::BlockMessage> tests;
   tests.push_back(msg1);
   tests.push_back(msg2);
   for (auto tt : tests) {
@@ -374,15 +378,15 @@ TEST(RaftPaperTests, TestCandidateFallback2AA) {
     eraft::Config c(1, peers, 10, 1, memSt);
     std::shared_ptr<eraft::RaftContext> r =
         std::make_shared<eraft::RaftContext>(c);
-    eraftpb::Message hupMsg;
+    eraftpb::BlockMessage hupMsg;
     hupMsg.set_from(1);
     hupMsg.set_to(1);
     hupMsg.set_msg_type(eraftpb::MsgHup);
-    r->Step(hupMsg);
+    r->StepB(hupMsg);
     ASSERT_EQ(eraft::StateToString(r->state_),
               eraft::StateToString(eraft::NodeState::StateCandidate));
 
-    r->Step(tt);
+    r->StepB(tt);
 
     ASSERT_EQ(eraft::StateToString(r->state_),
               eraft::StateToString(eraft::NodeState::StateFollower));
@@ -406,8 +410,8 @@ TEST(RaftPaperTests, TestFollowerElectionTimeoutRandomized2AA) {
     r->BecomeFollower(r->term_ + 1, 2);
 
     uint64_t time = 0;
-    while (r->ReadMessage().size() == 0) {
-      r->Tick();
+    while (r->ReadMessageB().size() == 0) {
+      r->TickB();
       time++;
     }
     timeouts[time] = true;
@@ -433,8 +437,8 @@ TEST(RaftPaperTests, TestCandidateElectionTimeoutRandomized2AA) {
     r->BecomeCandidate();
 
     uint64_t time = 0;
-    while (r->ReadMessage().size() == 0) {
-      r->Tick();
+    while (r->ReadMessageB().size() == 0) {
+      r->TickB();
       time++;
     }
     timeouts[time] = true;
@@ -492,24 +496,24 @@ TEST(RaftPaperTests, TestFollowersElectionTimeoutNonconflict2AA) {
     r->BecomeFollower(r->term_ + 1, eraft::NONE);
     uint64_t timeoutNum = 0;
     while (timeoutNum == 0) {
-      r->Tick();
-      if (r->ReadMessage().size() > 0) {  // state machine timeout
+      r->TickB();
+      if (r->ReadMessageB().size() > 0) {  // state machine timeout
         timeoutNum++;
       }
-      r1->Tick();
-      if (r1->ReadMessage().size() > 0) {
+      r1->TickB();
+      if (r1->ReadMessageB().size() > 0) {
         timeoutNum++;
       }
-      r2->Tick();
-      if (r2->ReadMessage().size() > 0) {
+      r2->TickB();
+      if (r2->ReadMessageB().size() > 0) {
         timeoutNum++;
       }
-      r3->Tick();
-      if (r3->ReadMessage().size() > 0) {
+      r3->TickB();
+      if (r3->ReadMessageB().size() > 0) {
         timeoutNum++;
       }
-      r4->Tick();
-      if (r4->ReadMessage().size() > 0) {
+      r4->TickB();
+      if (r4->ReadMessageB().size() > 0) {
         timeoutNum++;
       }
     }
@@ -566,24 +570,24 @@ TEST(RaftPaperTests, TestCandidatesElectionTimeoutNonconflict2AA) {
     r->BecomeCandidate();
     uint64_t timeoutNum = 0;
     while (timeoutNum == 0) {
-      r->Tick();
-      if (r->ReadMessage().size() > 0) {  // state machine timeout
+      r->TickB();
+      if (r->ReadMessageB().size() > 0) {  // state machine timeout
         timeoutNum++;
       }
-      r1->Tick();
-      if (r1->ReadMessage().size() > 0) {
+      r1->TickB();
+      if (r1->ReadMessageB().size() > 0) {
         timeoutNum++;
       }
-      r2->Tick();
-      if (r2->ReadMessage().size() > 0) {
+      r2->TickB();
+      if (r2->ReadMessageB().size() > 0) {
         timeoutNum++;
       }
-      r3->Tick();
-      if (r3->ReadMessage().size() > 0) {
+      r3->TickB();
+      if (r3->ReadMessageB().size() > 0) {
         timeoutNum++;
       }
-      r4->Tick();
-      if (r4->ReadMessage().size() > 0) {
+      r4->TickB();
+      if (r4->ReadMessageB().size() > 0) {
         timeoutNum++;
       }
     }

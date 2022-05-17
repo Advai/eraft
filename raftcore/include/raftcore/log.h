@@ -132,6 +132,7 @@ class RaftLog {
 
   std::shared_ptr<ListNode> commited_marker;
 
+  std::shared_ptr<ListNode> _Genesis;
   uint64_t lastAppendedTerm;
 
   std::vector<std::shared_ptr<ListNode>> cHeads_;
@@ -152,9 +153,11 @@ class RaftLog {
 
   void TryCompactB(); //might work the same tbh
 
-  bool isSameBlock(static eraftpb::Block& block1, static eraft::Block& block2);
+  bool isSameBlock(eraftpb::Block block1, eraftpb::Block block2);
 
   uint64_t HeadtoCommitOffset();
+  
+  void RemoveSideChains();
 
  private:
 
