@@ -23,7 +23,7 @@
 #include <kv/bench_tools.h>
 #include <eraftio/kvrpcpb.grpc.pb.h>
 #include <unistd.h>
-
+#include <algorithm>
 #include <chrono>
 #include <ctime>
 #include <iostream>
@@ -34,7 +34,7 @@ namespace kvserver {
 
 BenchResult::BenchResult(const std::string& cmd_name, double avg_qps,
                          double avg_latency, uint32_t case_num,
-                         uint32_t key_num, uint32_t valid_key_num)
+                         double key_num, double valid_key_num)
     : cmd_name_(cmd_name),
       avg_qps_(avg_qps),
       avg_latency_(avg_latency),
@@ -44,12 +44,10 @@ BenchResult::BenchResult(const std::string& cmd_name, double avg_qps,
 
 std::string BenchResult::PrettyBenchResult() const {
   std::string result;
-  result += "cmd_name_= " + cmd_name_;
-  result += " avg_qps_= " + std::to_string(avg_qps_);
-  result += " avg_latency_= " + std::to_string(avg_latency_);
-  result += " case_num_= " + std::to_string(case_num_);
-  result += " key_num_= " + std::to_string(key_num_);
-  result += " valid_key_num_= " + std::to_string(valid_key_num_);
+  result += "avg_qps= " + std::to_string(avg_qps_) + "\n";
+  result += "avg_latency= " + std::to_string(avg_latency_) + "\n";
+  result += "99th_latency = " + std::to_string(key_num_) + "\n";
+  result += "99th_qps= " + std::to_string(valid_key_num_) + "\n";
   return result;
 }
 
@@ -98,6 +96,8 @@ std::string BenchTools::GenRandomLenString(uint64_t len) {
   return random_string;
 }
 
+
+//TODO: Just make this threaded???
 BenchResult BenchTools::RunBenchmarks() {
   std::map<std::string, std::string>
       validate_kv;  // evaluate the correctness of raft
@@ -111,26 +111,40 @@ BenchResult BenchTools::RunBenchmarks() {
   put_request.mutable_context()->set_region_id(1);
   put_request.set_cf("test_cf");
   put_request.set_type(1);
-
+  //need to make top precentile vectors
+  std::vector<double> _thpt_updates;
+  std::vector<double> _latency_updates;
+  int update_tick = this->test_op_count_ / 100;
   auto start = std::chrono::system_clock::now();
+  auto latest = start;
+  int tick = 0;
   for (auto it = test_cases.begin(); it != test_cases.end(); ++it) {
     const std::string& key = it->first;
     const std::string& value = it->second;
-
     put_request.set_key(key);
     put_request.set_value(value);
-    std::cout << "set key: " << key << '\n';
-    std::cout << "set value: " << value << '\n';
-    // this->raft_client_->PutRaw(this->target_addr_, put_request);
     raftClient->PutRaw(this->target_addr_, put_request);
     validate_kv[key] = value;
-    // for test, 80ms << 100ms raft tick, we must limit speed of propose, for
-    // optimization, we to batch propose client request
-    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    // for test, 80ms << 100ms raft tick, we must limit speed to avoid problems
+    if (++tick > update_tick){
+      auto curr = std::chrono::system_clock::now();
+      std::chrono::duration<double> diff = curr - latest;
+      double latency = diff.count() / update_tick;
+      double qps = update_tick / diff.count();
+      latest = curr;
+      _thpt_updates.push_back(qps);
+      _latency_updates.push_back(latency);
+      tick = 0;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed = end - start;
-
+  size_t key_num = validate_kv.size();
+  size_t valid_key_num = key_num;
+  
+  //NOTE: Can remove validation for pure speed test..
+  /*
   std::cout << "start validation: ------------------------------------- \n";
   std::shared_ptr<Config> conf1 =
       std::make_shared<Config>(target_addr_, "get", 0);
@@ -159,13 +173,16 @@ BenchResult BenchTools::RunBenchmarks() {
                 << " value_raft= " << value_raft << "\n";
     }
   }
-
+  */
   double avg_latency = elapsed.count() / this->test_op_count_;
-
   double avg_qps = this->test_op_count_ / elapsed.count();
+  std::sort(_thpt_updates.begin(), _thpt_updates.end());
+  std::sort(_latency_updates.begin(),  _latency_updates.end());
+  double top_one_latency = _latency_updates[98];
+  double top_one_throughput = _thpt_updates[0];
 
-  return BenchResult("", avg_qps, avg_latency, this->test_op_count_, key_num,
-                     valid_key_num);
+  return BenchResult("DEFAULT", avg_qps, avg_latency, this->test_op_count_, top_one_latency,
+                     top_one_throughput);
 }
 
 }  // namespace kvserver

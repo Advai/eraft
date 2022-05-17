@@ -36,7 +36,7 @@ enum class BenchCmdType { KvRawPut, KvRawGet };
 class BenchResult {
  public:
   BenchResult(const std::string& cmd_name, double avg_qps, double avg_latency,
-              uint32_t case_num, uint32_t key_num, uint32_t valid_key_num);
+              uint32_t case_num,  double key_num, double valid_key_num);
 
   std::string PrettyBenchResult() const;
 
