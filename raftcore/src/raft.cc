@@ -166,10 +166,10 @@ bool RaftContext::SendAppend_b(uint64_t to) {
 //   curr->block = this->raftLog_->lHead_->block;
 //   curr->next = this->raftLog_->lHead_->next;
   std::vector<eraftpb::Block> blockList;
-//   for (int i = 0; i < this->prs_b[to]->next; ++i) {
-//     blockList.push_back(curr->block); //list of length prs_b[to]->next size.. (offset to send node i) TODO: Speedup?
-//     curr = curr->next;
-//   }
+  for (int i = 0; i < this->prs_b[to]->next; ++i) {
+    blockList.push_back(curr->block); //list of length prs_b[to]->next size.. (offset to send node i) TODO: Speedup?
+    curr = curr->next;
+  }
   SPDLOG_INFO("Pushed to blockList");
   eraftpb::Block* blk = new eraftpb::Block;
   eraftpb::Block* prev_blk = new eraftpb::Block;
