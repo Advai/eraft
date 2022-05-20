@@ -65,6 +65,7 @@ class DReady {
   std::vector<eraftpb::Entry> committedEntries;
 
   std::vector<eraftpb::Message> messages;
+  std::vector<eraftpb::BlockMessage> messages_b;
 };
 
 class RawNode {
@@ -75,7 +76,7 @@ class RawNode {
 
   // Tick advances the internal logical clock by a single tick.
   void Tick();
-
+  void TickB();
   // Campaign causes this RawNode to transition to candidate state.
   void Campaign();
 
@@ -90,6 +91,7 @@ class RawNode {
 
   // Step advances the state machine using the given message.
   void Step(eraftpb::Message m);
+  void StepB(eraftpb::BlockMessage m);
 
   // EReady returns the current point-in-time state of this RawNode.
   DReady EReady();

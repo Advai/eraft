@@ -1,6 +1,6 @@
-# CMakeLists.txt for UriTests
+# CMakeLists.txt for RaftTests
 # 
-# © 2020 by LiuJ
+# © 2022 by LiuJ
 
 cmake_minimum_required(VERSION 3.8)
 set(This raft_tests)

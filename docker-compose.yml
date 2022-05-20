@@ -1,56 +1,73 @@
 version: '3'
 services:
   eraft-1:
+    privileged: true
     hostname: eraft-1
     image: hub.docker.com/eraftio/eraft:latest
     volumes:
       - .:/eraft
     working_dir: /eraft
-    command: build_/kv/kvserver/kv_svr 172.19.0.12:20160 /tmp/db2 2
+    command: bash -c "apt-get install -y iproute2 && apt-get install -y sudo && build_/kv/kvserver/kv_svr 172.19.0.11:20160 /tmp/db1 1"
     networks:
       eraft-network:
         ipv4_address: 172.19.0.11
     ports:
       - "20160:20160"
-
+    cpuset: "0"
+    cap_add: 
+      - NET_ADMIN
+      - SYS_ADMIN
   eraft-2:
+    privileged: true
     hostname: eraft-2
     image: hub.docker.com/eraftio/eraft:latest
     volumes:
       - .:/eraft
     working_dir: /eraft
-    command: build_/kv/kvserver/kv_svr 172.19.0.12:20161 /tmp/db2 2
+    command: bash -c "apt-get install -y iproute2 && apt-get install -y sudo && build_/kv/kvserver/kv_svr 172.19.0.12:20161 /tmp/db2 2"
     networks:
       eraft-network:
         ipv4_address: 172.19.0.12
     ports:
       - "20161:20161"
-
+    cpuset: "1"
+    cap_add: 
+      - NET_ADMIN 
+      - SYS_ADMIN
   eraft-3:
+    privileged: true
     hostname: eraft-3
     image: hub.docker.com/eraftio/eraft:latest
     volumes:
       - .:/eraft
     working_dir: /eraft
-    command: build_/kv/kvserver/kv_svr 172.19.0.13:20162 /tmp/db3 3
+    command: bash -c "apt-get install -y iproute2 && apt-get install -y sudo && build_/kv/kvserver/kv_svr 172.19.0.13:20162 /tmp/db3 3"
     networks:
       eraft-network:
         ipv4_address: 172.19.0.13
     ports:
       - "20162:20162"
-
+    cpuset: "2"
+    cap_add: 
+      - NET_ADMIN
+      - SYS_ADMIN
   eraft-4:
+    privileged: true
     hostname: eraft-4
     image: hub.docker.com/eraftio/eraft:latest
     volumes:
       - .:/eraft
     working_dir: /eraft
-    command: build_/kv/kvserver/kv_svr 172.19.0.14:20163 /tmp/db4 4
+    command: bash -c "apt-get install -y iproute2 && apt-get install -y sudo && build_/kv/kvserver/kv_svr 172.19.0.14:20163 /tmp/db4 4"
     networks:
       eraft-network:
         ipv4_address: 172.19.0.14
     ports:
       - "20163:20163"
+    cpuset: "3"
+    cap_add: 
+      - NET_ADMIN
+      - SYS_ADMIN
 
 networks:
   eraft-network:

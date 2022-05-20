@@ -30,6 +30,7 @@ set(Headers
     include/raftcore/raw_node.h
     include/raftcore/storage.h
     include/raftcore/util.h
+    include/raftcore/uuid.h
 )
 
 set(Sources

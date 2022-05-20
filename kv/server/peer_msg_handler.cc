@@ -476,7 +476,7 @@ void PeerMsgHandler::StartTicker() {
   QueueContext::GetInstance()->get_regionIdCh().enqueue(this->peer_->regionId_);
 }
 
-void PeerMsgHandler::OnRaftBaseTick() { this->peer_->raftGroup_->Tick(); }
+void PeerMsgHandler::OnRaftBaseTick() { this->peer_->raftGroup_->TickB(); }
 
 bool PeerMsgHandler::OnRaftMsg(raft_serverpb::RaftMessage* msg) {
   auto toPeer = this->peer_->GetPeerFromCache(msg->message().from());

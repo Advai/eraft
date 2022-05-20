@@ -40,6 +40,12 @@
 
 #include <raftcore/memory_storage.h>
 #include <stdint.h>
+#include <list>
+#include <functional>
+#define UUID_SYSTEM_GENERATOR
+#include "uuid.h"
+
+#include <google/protobuf/util/message_differencer.h>
 
 // RaftLog manage the log entries, its struct look like:
 //
@@ -50,12 +56,24 @@
 // for simplify the RaftLog implement should manage all log entries
 // that not truncated
 
+// NOTE WITH BLOCKS:
+//  We do not have an active log of any entries pasted committed 
+//  We translate real time from a chain of blocks that extend commitedMaker.
+//  We CAN keep track of last, and perhaps stabled
+//  Need to keep track of first index to allow compaction
+
+
 namespace eraft {
 
 enum class NodeState {
   StateFollower,
   StateCandidate,
   StateLeader,
+};
+
+struct ListNode {
+  eraftpb::Block block;
+  std::shared_ptr<ListNode> next;
 };
 
 class RaftLog {
@@ -109,10 +127,42 @@ class RaftLog {
   // all entries that have not yet compact.
   std::vector<eraftpb::Entry> entries_;
 
- private:
-  // storage contains all stable entries since the last snapshot.
-  std::shared_ptr<StorageInterface> storage_;  // point to real storage
+  //Additional Chained structures
+  std::shared_ptr<ListNode> lHead;
 
+  std::shared_ptr<ListNode> commited_marker;
+
+  std::shared_ptr<ListNode> _Genesis;
+  uint64_t lastAppendedTerm;
+
+  std::vector<std::shared_ptr<ListNode>> cHeads_;
+
+  std::unordered_map<std::shared_ptr<ListNode>, std::shared_ptr<ListNode>> hTails_; //Todo? Pointer address to head -> tail..
+
+  //Chained Interfaces
+  std::shared_ptr<ListNode> FindBlock(eraftpb::Block block);
+
+  std::shared_ptr<ListNode> FindBlockFrom(eraftpb::Block block, std::shared_ptr<ListNode> head);
+
+  std::shared_ptr<ListNode> WalkBackN(std::shared_ptr<ListNode> head, int n);
+  
+  //Storage interfaces/Utility
+  void FreeChain(std::shared_ptr<ListNode> head, std::shared_ptr<ListNode> tail);
+
+  void CommitGarbageCollect(uint8_t n);
+
+  void TryCompactB(); //might work the same tbh
+
+  bool isSameBlock(eraftpb::Block block1, eraftpb::Block block2);
+
+  uint64_t HeadtoCommitOffset();
+  
+  void RemoveSideChains();
+
+ private:
+
+  // storage contains all stable entries since the last snapshot.
+  std::shared_ptr<StorageInterface> storage_; 
   // the incoming unstable snapshot, if any.
   eraftpb::Snapshot pendingSnapshot_;
 };

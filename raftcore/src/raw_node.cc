@@ -49,43 +49,45 @@ RawNode::RawNode(Config& config) {
 
 void RawNode::Tick() { this->raft->Tick(); }
 
+void RawNode::TickB() {this->raft->TickB(); }
+
 void RawNode::Campaign() {
   SPDLOG_INFO("rawnode start campaign");
-  eraftpb::Message msg;
+  eraftpb::BlockMessage msg;
   msg.set_msg_type(eraftpb::MsgHup);
-  this->raft->Step(msg);
+  this->raft->StepB(msg);
 }
 
 void RawNode::Propose(std::string data) {
-  eraftpb::Message msg;
+  eraftpb::BlockMessage msg;
   msg.set_msg_type(eraftpb::MsgPropose);
-  eraftpb::Entry* ent = msg.add_entries();
+  eraftpb::Block* ent = msg.add_blocks();
   ent->set_data(data);
   ent->set_entry_type(eraftpb::EntryNormal);
-  this->raft->Step(msg);
+  this->raft->StepB(msg);
 }
 
 // ...
 void RawNode::ProposeConfChange(eraftpb::ConfChange cc) {
   std::string data = cc.SerializeAsString();
   SPDLOG_INFO("ProposeConfChange: " + data);
-  eraftpb::Message msg;
+  eraftpb::BlockMessage msg;
   msg.set_msg_type(eraftpb::MsgPropose);
-  eraftpb::Entry* ent = msg.add_entries();
+  eraftpb::Block* ent = msg.add_blocks();
   ent->set_data(data);
   ent->set_entry_type(eraftpb::EntryConfChange);
-  this->raft->Step(msg);
+  this->raft->StepB(msg);
 }
 
 void RawNode::ProposeSplitRegion(metapb::Region region) {
   std::string data = region.SerializeAsString();
   SPDLOG_INFO("ProposeSplitRegion: " + data);
-  eraftpb::Message msg;
+  eraftpb::BlockMessage msg;
   msg.set_msg_type(eraftpb::MsgPropose);
-  eraftpb::Entry* ent = msg.add_entries();
+  eraftpb::Block* ent = msg.add_blocks();
   ent->set_data(data);
   ent->set_entry_type(eraftpb::EntrySplitRegion);
-  this->raft->Step(msg);
+  this->raft->StepB(msg);
 }
 
 eraftpb::ConfState RawNode::ApplyConfChange(eraftpb::ConfChange cc) {
@@ -102,7 +104,7 @@ eraftpb::ConfState RawNode::ApplyConfChange(eraftpb::ConfChange cc) {
       break;
     }
     case eraftpb::RemoveNode: {
-      this->raft->RemoveNode(cc.node_id());
+      this->raft->RemoveNodeB(cc.node_id());
       break;
     }
   }
@@ -114,6 +116,7 @@ eraftpb::ConfState RawNode::ApplyConfChange(eraftpb::ConfChange cc) {
 }
 
 void RawNode::Step(eraftpb::Message m) { this->raft->Step(m); }
+void RawNode::StepB(eraftpb::BlockMessage m) { this->raft->StepB(m); }
 
 DReady RawNode::EReady() {
   std::shared_ptr<RaftContext> r = this->raft;
@@ -121,6 +124,7 @@ DReady RawNode::EReady() {
   rd.entries = r->raftLog_->UnstableEntries();
   rd.committedEntries = r->raftLog_->NextEnts();
   rd.messages = r->msgs_;
+  rd.messages_b = r->msgs_b;
   // if(!r->SoftState()->Equal(this->prevSoftSt)) {
   //     this->prevSoftSt = r->SoftState();
   //     rd.softSt = r->SoftState();
@@ -129,6 +133,7 @@ DReady RawNode::EReady() {
   //     rd.hardSt = *r->HardState();
   // }
   this->raft->msgs_.clear();
+  this->raft->msgs_b.clear();
   if (!IsEmptySnap(r->raftLog_->pendingSnapshot_)) {
     rd.snapshot = r->raftLog_->pendingSnapshot_;
     r->raftLog_->pendingSnapshot_.clear_data();
@@ -143,7 +148,7 @@ bool RawNode::HasReady() {
   }
   if (this->raft->raftLog_->UnstableEntries().size() > 0 ||
       this->raft->raftLog_->NextEnts().size() > 0 ||
-      this->raft->msgs_.size() > 0) {
+      this->raft->msgs_b.size() > 0) {
     return true;
   }
   if (!IsEmptySnap(this->raft->raftLog_->pendingSnapshot_)) {
@@ -177,10 +182,10 @@ std::map<uint64_t, Progress> RawNode::GetProgress() {
 }
 
 void RawNode::TransferLeader(uint64_t transferee) {
-  eraftpb::Message msg;
+  eraftpb::BlockMessage msg;
   msg.set_msg_type(eraftpb::MsgTransferLeader);
   msg.set_from(transferee);
-  this->Step(msg);
+  this->StepB(msg);
 }
 
 }  // namespace eraft
